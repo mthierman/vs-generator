@@ -89,12 +89,12 @@ foreach (var config in configurations)
         project_settings.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
 
         // ----- ClCompile -----
-        var clCompile = project_settings.AddItemDefinition("ClCompile");
+        var cl_compile = project_settings.AddItemDefinition("ClCompile");
 
-        clCompile.AddMetadata("WarningLevel", "Level3", false);
-        clCompile.AddMetadata("SDLCheck", "true", false);
-        clCompile.AddMetadata("ConformanceMode", "true", false);
-        clCompile.AddMetadata("LanguageStandard", "stdcpp20", false);
+        cl_compile.AddMetadata("WarningLevel", "Level3", false);
+        cl_compile.AddMetadata("SDLCheck", "true", false);
+        cl_compile.AddMetadata("ConformanceMode", "true", false);
+        cl_compile.AddMetadata("LanguageStandard", "stdcpp20", false);
 
         // PreprocessorDefinitions
         string preprocessor = config switch
@@ -105,13 +105,13 @@ foreach (var config in configurations)
             "Release" when platform == "x64" => "NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
             _ => "%(PreprocessorDefinitions)"
         };
-        clCompile.AddMetadata("PreprocessorDefinitions", preprocessor, false);
+        cl_compile.AddMetadata("PreprocessorDefinitions", preprocessor, false);
 
         // Release-specific flags
         if (config == "Release")
         {
-            clCompile.AddMetadata("FunctionLevelLinking", "true", false);
-            clCompile.AddMetadata("IntrinsicFunctions", "true", false);
+            cl_compile.AddMetadata("FunctionLevelLinking", "true", false);
+            cl_compile.AddMetadata("IntrinsicFunctions", "true", false);
         }
 
         // ----- Link -----

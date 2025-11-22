@@ -94,7 +94,7 @@ foreach (var config in configurations)
         cl_compile.AddMetadata("WarningLevel", "Level3", false);
         cl_compile.AddMetadata("SDLCheck", "true", false);
         cl_compile.AddMetadata("ConformanceMode", "true", false);
-        cl_compile.AddMetadata("LanguageStandard", "stdcpplatest", false);
+        cl_compile.AddMetadata("LanguageStandard", "stdcpp23", false);
 
         // PreprocessorDefinitions
         string preprocessor = config switch

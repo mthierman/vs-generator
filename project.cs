@@ -139,18 +139,31 @@ vcpkg.Label = "Vcpkg";
 vcpkg.AddProperty("VcpkgEnableManifest", "true");
 
 // ----- 15. Add sources from "src" folder -----
-var sources = project.AddItemGroup();
+string srcDir = "src";
 
-// Add all .cpp files
-foreach (var cppFile in Directory.GetFiles("src", "*.cpp"))
+if (Directory.Exists(srcDir))
 {
-    sources.AddItem("ClCompile", cppFile.Replace('\\', '/'));
+    var cppFiles = Directory.GetFiles(srcDir, "*.cpp");
+    var hFiles = Directory.GetFiles(srcDir, "*.h");
+
+    if (cppFiles.Length > 0 || hFiles.Length > 0)
+    {
+        var sources = project.AddItemGroup();
+
+        foreach (var cppFile in cppFiles)
+            sources.AddItem("ClCompile", cppFile.Replace('\\', '/'));
+
+        foreach (var hFile in hFiles)
+            sources.AddItem("ClInclude", hFile.Replace('\\', '/'));
+    }
+    else
+    {
+        Console.WriteLine("Warning: 'src' directory exists but contains no .cpp or .h files.");
+    }
 }
-
-// Add all .h files
-foreach (var hFile in Directory.GetFiles("src", "*.h"))
+else
 {
-    sources.AddItem("ClInclude", hFile.Replace('\\', '/'));
+    Console.WriteLine("Warning: 'src' directory does not exist.");
 }
 
 project.Save("build/app.vcxproj");

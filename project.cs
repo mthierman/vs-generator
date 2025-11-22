@@ -121,4 +121,14 @@ foreach (var config in configurations)
     }
 }
 
+// ----- 11. Empty ItemGroup -----
+project.AddItemGroup();
+
+// ----- 12. Import Microsoft.Cpp.targets -----
+project.AddImport(@"$(VCTargetsPath)\Microsoft.Cpp.targets");
+
+// ----- 13. ExtensionTargets ImportGroup -----
+var extensionTargets = project.AddImportGroup();
+extensionTargets.Label = "ExtensionTargets";
+
 project.Save("build/app.vcxproj");

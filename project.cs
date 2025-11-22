@@ -61,4 +61,20 @@ extensionSettings.Label = "ExtensionSettings";
 var sharedImports = project.AddImportGroup();
 sharedImports.Label = "Shared";
 
+// ----- 8. Per-configuration PropertySheets -----
+foreach (var config in configurations)
+{
+    foreach (var platform in platforms)
+    {
+        var pg = project.AddImportGroup();
+        pg.Label = "PropertySheets";
+        pg.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
+
+        var import = pg.AddImport(@"$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props");
+        import.Condition = $"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')";
+        import.Label = "LocalAppDataPlatform";
+    }
+}
+
+
 project.Save("build/app.vcxproj");

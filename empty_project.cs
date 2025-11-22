@@ -20,4 +20,14 @@ foreach (var config in configurations)
     }
 }
 
+var globals = project.AddPropertyGroup();
+globals.Label = "Globals";
+
+globals.AddProperty("VCProjectVersion", "18.0");
+globals.AddProperty("Keyword", "Win32Proj");
+globals.AddProperty("ProjectGuid", "{4985344b-071c-4114-a0bb-41d2b55773cd}");
+globals.AddProperty("RootNamespace", "app");
+globals.AddProperty("WindowsTargetPlatformVersion", "10.0");
+
+
 project.Save("build/app.vcxproj");

@@ -4,7 +4,8 @@ using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
 var solution = new SolutionModel();
 
-solution.AddProject("app.vcxproj");
+var project = solution.AddProject("app.vcxproj");
+project.Id = Guid.NewGuid();
 solution.AddPlatform("x64");
 solution.AddPlatform("x86");
 

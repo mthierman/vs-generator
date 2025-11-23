@@ -30,14 +30,14 @@ public class App
         root_command.Subcommands.Add(build);
         build.SetAction(async parseResult =>
         {
-            return (await MSBuild.generate() && MSBuild.build_debug(build_dir)) ? 0 : 1;
+            return (await MSBuild.generate() && MSBuild.build(MSBuild.BuildConfiguration.Debug)) ? 0 : 1;
         });
 
         Command release = new("release", "Build release") { };
         root_command.Subcommands.Add(release);
         release.SetAction(async parseResult =>
         {
-            return (await MSBuild.generate() && MSBuild.build_release(build_dir)) ? 0 : 1;
+            return (await MSBuild.generate() && MSBuild.build(MSBuild.BuildConfiguration.Release)) ? 0 : 1;
         });
 
         return root_command.Parse(args).Invoke();

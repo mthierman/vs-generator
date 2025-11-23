@@ -26,18 +26,16 @@ public class MSBuild
         return string.IsNullOrWhiteSpace(path) ? null : path;
     }
 
-    public static bool build_debug(string? working_directory)
+    public enum BuildConfiguration
     {
-        using var process = Process.Start(string.IsNullOrEmpty(working_directory) ? new ProcessStartInfo() { FileName = exe } : new ProcessStartInfo() { FileName = exe, WorkingDirectory = working_directory });
-        process?.WaitForExit();
-
-        return true;
+        Debug,
+        Release
     }
 
-    public static bool build_release(string? working_directory)
+    public static bool build(BuildConfiguration config)
     {
-        using var process = Process.Start(string.IsNullOrEmpty(working_directory) ? new ProcessStartInfo() { FileName = exe } : new ProcessStartInfo() { FileName = exe, WorkingDirectory = working_directory, Arguments = "/p:Configuration=Release" });
-        process?.WaitForExit();
+        var start_info = new ProcessStartInfo() { FileName = exe, WorkingDirectory = App.build_dir, Arguments = config == BuildConfiguration.Release ? "/p:Configuration=Release" : string.Empty };
+        Process.Start(start_info)?.WaitForExit();
 
         return true;
     }
@@ -88,6 +86,8 @@ public class MSBuild
                 group.AddProperty("UseDebugLibraries", config == "Debug" ? "true" : "false");
                 group.AddProperty("PlatformToolset", "v145");
                 group.AddProperty("CharacterSet", "Unicode");
+                group.AddProperty("OutDir", @"\$(Configuration)\");
+                group.AddProperty("IntDir", @"\$(Configuration)\");
             }
         }
 
@@ -153,8 +153,6 @@ public class MSBuild
                 cl_compile.AddMetadata("LanguageStandard", "stdcpp23", false);
                 cl_compile.AddMetadata("LanguageStandard_C", "stdc17", false);
                 cl_compile.AddMetadata("BuildStlModules", "true", false);
-                cl_compile.AddMetadata("OutDir", "$(SolutionDir)\\build\\", false);
-                cl_compile.AddMetadata("IntDir", "$(SolutionDir)\\build\\$(Configuration)\\", false);
 
                 // PreprocessorDefinitions
                 string preprocessor = config switch

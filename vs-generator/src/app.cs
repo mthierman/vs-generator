@@ -47,10 +47,7 @@ public class App
 
         sub_command["clean"].SetAction(async parseResult =>
         {
-            if (Directory.Exists(build_dir))
-            { Directory.Delete(build_dir, true); }
-
-            return 0;
+            return MSBuild.clean() ? (int)ExitCode.Success : (int)ExitCode.GeneralError;
         });
 
         return root_command.Parse(args).Invoke();

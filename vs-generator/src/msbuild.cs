@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
 public class MSBuild
 {
-    public static string? locate()
+    public static string? exe()
     {
         using var process = Process.Start(new ProcessStartInfo()
         {

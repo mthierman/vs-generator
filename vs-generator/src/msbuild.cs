@@ -125,7 +125,8 @@ public class MSBuild
                 // ----- ClCompile -----
                 var cl_compile = project_settings.AddItemDefinition("ClCompile");
 
-                cl_compile.AddMetadata("WarningLevel", "Level3", false);
+                cl_compile.AddMetadata("WarningLevel", "Level4", false);
+                cl_compile.AddMetadata("TreatWarningAsError", "true", false);
                 cl_compile.AddMetadata("SDLCheck", "true", false);
                 cl_compile.AddMetadata("ConformanceMode", "true", false);
                 cl_compile.AddMetadata("LanguageStandard", "stdcpp23", false);

@@ -40,6 +40,14 @@ public class App
             return (await MSBuild.generate() && MSBuild.build(MSBuild.BuildConfiguration.Release)) ? 0 : 1;
         });
 
+        Command clean = new("clean", "Clean build") { };
+        root_command.Subcommands.Add(clean);
+        clean.SetAction(async parseResult =>
+        {
+            Directory.Delete(build_dir, true);
+            return 0;
+        });
+
         return root_command.Parse(args).Invoke();
     }
 }

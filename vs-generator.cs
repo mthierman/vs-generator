@@ -3,6 +3,11 @@ using Microsoft.Build.Construction;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
+void register_msbuild()
+{
+    MSBuildLocator.RegisterDefaults();
+}
+
 async Task generate_project()
 {
     var solution_model = new SolutionModel();
@@ -188,9 +193,7 @@ async Task generate_project()
     project.Save("build/app.vcxproj");
 }
 
-// Register defaults before using any MSBuild types
-MSBuildLocator.RegisterDefaults();
-
+register_msbuild();
 await generate_project();
 
 // ----- 16. Generate compile_commands.json -----

@@ -5,7 +5,12 @@ using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
 public class MSBuild
 {
-    public static string? exe { get; } = get_msbuild_path();
+    private static readonly string? exe;
+
+    static MSBuild()
+    {
+        exe = get_msbuild_path();
+    }
 
     private static string? get_msbuild_path()
     {
@@ -18,14 +23,19 @@ public class MSBuild
         {
             FileName = vswhere,
             Arguments = "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
         });
 
         if (process == null) return null;
 
-        var path = process.StandardOutput.ReadLine();
+        var output = process.StandardOutput.ReadToEnd();
         process.WaitForExit();
 
+        var path = output.Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)[0];
         return string.IsNullOrWhiteSpace(path) ? null : path;
+
     }
 
     public enum BuildConfiguration

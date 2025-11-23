@@ -22,7 +22,7 @@ public class App
         ["clean"] = new Command("clean", "Clean build")
     };
 
-    public static int run(string[] args)
+    static App()
     {
         foreach (var command in sub_command.Values)
         {
@@ -47,11 +47,12 @@ public class App
 
         sub_command["clean"].SetAction(async parseResult =>
         {
-            MSBuild.clean();
-
-            return 0;
+            return MSBuild.clean() ? 0 : 1;
         });
+    }
 
+    public static int run(string[] args)
+    {
         return root_command.Parse(args).Invoke();
     }
 }

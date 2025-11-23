@@ -1,23 +1,30 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Microsoft.Build.Construction;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
+
 public class MSBuild
 {
-    private static readonly string? exe;
-
-    static MSBuild()
+    public static class Paths
     {
-        exe = get_msbuild_path();
+        public static string? exe;
+        public static string base_dir { get; } = Environment.CurrentDirectory;
+        public static string src_dir => Path.Combine(base_dir, "src");
+        public static string build_dir => Path.Combine(base_dir, "build");
     }
 
-    private static string? get_msbuild_path()
+    public static string version { get; } = Assembly.GetExecutingAssembly()
+                  .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                  .InformationalVersion ?? string.Empty;
+
+    static MSBuild()
     {
         var vswhere = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio\\Installer\\vswhere.exe");
 
         if (!File.Exists(vswhere))
-            return null;
+            Paths.exe = null;
 
         using var process = Process.Start(new ProcessStartInfo()
         {
@@ -28,14 +35,14 @@ public class MSBuild
             CreateNoWindow = true
         });
 
-        if (process == null) return null;
+        if (process == null) Paths.exe = null;
 
-        var output = process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
+        var output = process?.StandardOutput.ReadToEnd();
+        process?.WaitForExit();
 
-        var path = output.Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)[0];
-        return string.IsNullOrWhiteSpace(path) ? null : path;
+        var path = output?.Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)[0];
 
+        Paths.exe = string.IsNullOrWhiteSpace(path) ? null : path;
     }
 
     public enum BuildConfiguration
@@ -46,7 +53,7 @@ public class MSBuild
 
     public static async Task<bool> generate()
     {
-        if (!Directory.Exists(App.src_dir))
+        if (!Directory.Exists(Paths.src_dir))
             return false;
 
         var solution_model = new SolutionModel();
@@ -239,10 +246,10 @@ public class MSBuild
 
     public static bool build(BuildConfiguration config)
     {
-        if (!Directory.Exists(App.build_dir))
-            Directory.CreateDirectory(App.build_dir);
+        if (!Directory.Exists(Paths.build_dir))
+            Directory.CreateDirectory(Paths.build_dir);
 
-        var start_info = new ProcessStartInfo() { FileName = exe, WorkingDirectory = App.build_dir, Arguments = config == BuildConfiguration.Release ? "/p:Configuration=Release" : string.Empty };
+        var start_info = new ProcessStartInfo() { FileName = Paths.exe, WorkingDirectory = App.build_dir, Arguments = config == BuildConfiguration.Release ? "/p:Configuration=Release" : string.Empty };
         Process.Start(start_info)?.WaitForExit();
 
         return true;

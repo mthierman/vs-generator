@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.Reflection;
 
 public class App
 {
@@ -8,11 +7,7 @@ public class App
         Success = 0,
         GeneralError = 1,
     }
-    public static string src_dir { get; } = Path.Combine(Environment.CurrentDirectory, "src");
-    public static string build_dir { get; } = Path.Combine(Environment.CurrentDirectory, "build");
-    public static string version { get; } = Assembly.GetExecutingAssembly()
-                  .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                  .InformationalVersion ?? string.Empty;
+
     private static RootCommand root_command { get; } = new RootCommand($"vs-generator {version}");
     private static Dictionary<string, Command> sub_command = new Dictionary<string, Command>
     {

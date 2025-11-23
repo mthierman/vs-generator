@@ -34,6 +34,9 @@ public class MSBuild
 
     public static bool build(BuildConfiguration config)
     {
+        if (!Directory.Exists(App.build_dir))
+            Directory.CreateDirectory(App.build_dir);
+
         var start_info = new ProcessStartInfo() { FileName = exe, WorkingDirectory = App.build_dir, Arguments = config == BuildConfiguration.Release ? "/p:Configuration=Release" : string.Empty };
         Process.Start(start_info)?.WaitForExit();
 

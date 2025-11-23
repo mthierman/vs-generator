@@ -3,6 +3,11 @@ using System.Reflection;
 
 public class App
 {
+    public enum ExitCode : int
+    {
+        Success = 0,
+        GeneralError = 1,
+    }
     public static string src_dir { get; } = Path.Combine(Environment.CurrentDirectory, "src");
     public static string build_dir { get; } = Path.Combine(Environment.CurrentDirectory, "build");
     public static string version { get; } = Assembly.GetExecutingAssembly()
@@ -11,14 +16,13 @@ public class App
 
     public int run(string[] args)
     {
-        if (!Directory.Exists(build_dir))
-            Directory.CreateDirectory(build_dir);
-
-        if (!Directory.Exists(build_dir))
-            return 1;
+        if (!Directory.Exists(src_dir))
+        {
+            Console.WriteLine("src not found");
+            return (int)ExitCode.GeneralError;
+        }
 
         RootCommand root_command = new($"vs-generator {version}");
-
         Command gen = new("gen", "Generate build") { };
         root_command.Subcommands.Add(gen);
         gen.SetAction(async parseResult =>

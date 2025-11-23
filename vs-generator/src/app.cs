@@ -47,7 +47,9 @@ public class App
 
         sub_command["clean"].SetAction(async parseResult =>
         {
-            return MSBuild.clean() ? (int)ExitCode.Success : (int)ExitCode.GeneralError;
+            MSBuild.clean();
+
+            return 0;
         });
 
         return root_command.Parse(args).Invoke();

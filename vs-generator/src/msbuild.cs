@@ -1,9 +1,29 @@
-﻿using Microsoft.Build.Construction;
+﻿using System.Diagnostics;
+using Microsoft.Build.Construction;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
 public class MSBuild
 {
+    public static string? find()
+    {
+        using var process = Process.Start(new ProcessStartInfo()
+        {
+            FileName = "vswhere",
+            Arguments = "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+
+        if (process == null) return null;
+
+        var path = process.StandardOutput.ReadLine();
+        process.WaitForExit();
+
+        return string.IsNullOrWhiteSpace(path) ? null : path;
+    }
+
     public static async Task generate_project()
     {
         var solution_model = new SolutionModel();

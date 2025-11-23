@@ -27,7 +27,7 @@ public class App
 
             if (Directory.Exists(build_dir))
             {
-                using var process = Process.Start(new ProcessStartInfo() { FileName = "msbuild", WorkingDirectory = build_dir });
+                using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.find(), WorkingDirectory = build_dir });
                 process?.WaitForExit();
             }
         });

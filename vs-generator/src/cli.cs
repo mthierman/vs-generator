@@ -1,12 +1,16 @@
 using System.CommandLine;
 using System.Diagnostics;
+using System.Reflection;
 
 public class App
 {
     public static int run(string[] args)
     {
-        RootCommand root_command = new("vs-generator");
-        Console.WriteLine(root_command.Description);
+        var version = Assembly.GetExecutingAssembly()
+                      .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                      .InformationalVersion;
+
+        RootCommand root_command = new($"vs-generator {version}");
 
         Command gen = new("gen", "Generate build files") { };
         root_command.Subcommands.Add(gen);

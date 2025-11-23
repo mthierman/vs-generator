@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Diagnostics;
 
 public class CLI
 {
@@ -20,7 +21,14 @@ public class CLI
 
         build.SetAction(async parseResult =>
         {
-            Console.WriteLine("Building");
+            var build_dir = Path.Combine(Environment.CurrentDirectory, "build");
+            if (!Directory.Exists(build_dir))
+            {
+                Directory.CreateDirectory(build_dir);
+            }
+            Console.WriteLine($"Building {build_dir}");
+
+            Process.Start("msbuild");
         });
 
         return root_command.Parse(args!).Invoke();

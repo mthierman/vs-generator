@@ -205,6 +205,8 @@ public class MSBuild
         var vcpkg = project.AddPropertyGroup();
         vcpkg.Label = "Vcpkg";
         vcpkg.AddProperty("VcpkgEnableManifest", "true");
+        vcpkg.AddProperty("VcpkgUseStatic", "true");
+        vcpkg.AddProperty("VcpkgUseMD", "true");
 
         // ----- 15. Add sources from "src" folder -----
         var source_files = Directory.GetFiles(Paths.src_dir, "*.cpp");
@@ -235,7 +237,7 @@ public class MSBuild
         if (!await generate())
             return false;
 
-        var start_info = new ProcessStartInfo() { FileName = Paths.exe, WorkingDirectory = Paths.build_dir, Arguments = config == BuildConfiguration.Release ? "/p:Configuration=Release" : string.Empty };
+        var start_info = new ProcessStartInfo() { FileName = Paths.exe, WorkingDirectory = Paths.build_dir, Arguments = config == BuildConfiguration.Debug ? "/p:Configuration=Debug /p:Platform=x64" : "/p:Configuration=Release /p:Platform=x64" };
         Process.Start(start_info)?.WaitForExit();
 
         return true;

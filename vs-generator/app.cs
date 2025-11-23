@@ -18,6 +18,7 @@ public class App
     private static Dictionary<string, Command> sub_command = new Dictionary<string, Command>
     {
         ["gen"] = new Command("gen", "Generate build"),
+        ["install"] = new Command("install", "Install dependencies"),
         ["debug"] = new Command("debug", "Build debug"),
         ["release"] = new Command("release", "Build release"),
         ["clean"] = new Command("clean", "Clean build"),
@@ -36,6 +37,19 @@ public class App
             return (await MSBuild.generate()) ? 0 : 1;
         });
 
+        sub_command["install"].SetAction(async parseResult =>
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "vcpkg",
+                Arguments = "install"
+            };
+            psi.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+            psi.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+
+            using var process = Process.Start(psi);
+            process?.WaitForExit();
+        });
 
         sub_command["debug"].SetAction(async parseResult =>
         {

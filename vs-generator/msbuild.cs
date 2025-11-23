@@ -30,8 +30,7 @@ public class MSBuild
                 FileName = vswhere,
                 Arguments = "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe",
                 RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                UseShellExecute = false
             });
 
             if (process != null)

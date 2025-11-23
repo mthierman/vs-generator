@@ -23,26 +23,26 @@ public class MSBuild
     {
         var vswhere = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio\\Installer\\vswhere.exe");
 
-        if (!File.Exists(vswhere))
-            Paths.exe = null;
-
-        using var process = Process.Start(new ProcessStartInfo()
+        if (File.Exists(vswhere))
         {
-            FileName = vswhere,
-            Arguments = "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe",
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        });
+            using var process = Process.Start(new ProcessStartInfo()
+            {
+                FileName = vswhere,
+                Arguments = "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
 
-        if (process == null) Paths.exe = null;
+            if (process != null)
+            {
+                var output = process?.StandardOutput.ReadToEnd();
+                process?.WaitForExit();
 
-        var output = process?.StandardOutput.ReadToEnd();
-        process?.WaitForExit();
-
-        var path = output?.Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)[0];
-
-        Paths.exe = string.IsNullOrWhiteSpace(path) ? null : path;
+                var path = output?.Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)[0];
+                Paths.exe = string.IsNullOrWhiteSpace(path) ? null : path;
+            }
+        }
     }
 
     public enum BuildConfiguration

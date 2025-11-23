@@ -1,3 +1,3 @@
 <Solution>
-  <Project Path="vs-generator.csproj" />
+  <Project Path="vs-generator/vs-generator.csproj" />
 </Solution>

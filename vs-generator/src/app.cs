@@ -4,7 +4,8 @@ using System.Reflection;
 
 public class App
 {
-    private static readonly string build_dir = Path.Combine(Environment.CurrentDirectory, "build");
+    public static string src_dir { get; } = Path.Combine(Environment.CurrentDirectory, "src");
+    public static string build_dir { get; } = Path.Combine(Environment.CurrentDirectory, "build");
 
     public int run(string[] args)
     {
@@ -35,18 +36,22 @@ public class App
         root_command.Subcommands.Add(build);
         build.SetAction(async parseResult =>
         {
-            await MSBuild.generate();
-            using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.exe(), WorkingDirectory = build_dir });
-            process?.WaitForExit();
+            if (await MSBuild.generate())
+            {
+                using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.exe(), WorkingDirectory = build_dir });
+                process?.WaitForExit();
+            }
         });
 
         Command release = new("release", "Build release") { };
         root_command.Subcommands.Add(release);
         release.SetAction(async parseResult =>
         {
-            await MSBuild.generate();
-            using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.exe(), WorkingDirectory = build_dir, Arguments = "/p:Configuration=Release" });
-            process?.WaitForExit();
+            if (await MSBuild.generate())
+            {
+                using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.exe(), WorkingDirectory = build_dir, Arguments = "/p:Configuration=Release" });
+                process?.WaitForExit();
+            }
         });
 
         return root_command.Parse(args).Invoke();

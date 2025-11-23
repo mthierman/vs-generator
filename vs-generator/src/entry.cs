@@ -1,1 +1,1 @@
-﻿new App().run(args);
+﻿return new App().run(args);

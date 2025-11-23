@@ -24,8 +24,11 @@ public class MSBuild
         return string.IsNullOrWhiteSpace(path) ? null : path;
     }
 
-    public static async Task generate()
+    public static async Task<bool> generate()
     {
+        if (!Directory.Exists(App.src_dir))
+            return false;
+
         var solution_model = new SolutionModel();
         solution_model.AddPlatform("x64");
         solution_model.AddPlatform("x86");
@@ -210,5 +213,7 @@ public class MSBuild
         }
 
         project.Save("build/app.vcxproj");
+
+        return true;
     }
 }

@@ -16,7 +16,7 @@ public partial class App
 
     public int run(string[] args)
     {
-        App.setup_commands(args);
+        App.parse_args(args);
         return root_command.Parse(args).Invoke();
     }
 }

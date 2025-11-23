@@ -16,12 +16,6 @@ public class App
 
     public int run(string[] args)
     {
-        if (!Directory.Exists(src_dir))
-        {
-            Console.WriteLine("src not found");
-            return (int)ExitCode.GeneralError;
-        }
-
         RootCommand root_command = new($"vs-generator {version}");
         Command gen = new("gen", "Generate build") { };
         root_command.Subcommands.Add(gen);

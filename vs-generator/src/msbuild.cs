@@ -9,13 +9,15 @@ public class MSBuild
 
     private static string? get_msbuild_path()
     {
+        var vswhere = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio\\Installer\\vswhere.exe");
+
+        if (!File.Exists(vswhere))
+            return null;
+
         using var process = Process.Start(new ProcessStartInfo()
         {
-            FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio\\Installer\\vswhere.exe"),
+            FileName = vswhere,
             Arguments = "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe",
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
         });
 
         if (process == null) return null;
@@ -30,17 +32,6 @@ public class MSBuild
     {
         Debug,
         Release
-    }
-
-    public static bool build(BuildConfiguration config)
-    {
-        if (!Directory.Exists(App.build_dir))
-            Directory.CreateDirectory(App.build_dir);
-
-        var start_info = new ProcessStartInfo() { FileName = exe, WorkingDirectory = App.build_dir, Arguments = config == BuildConfiguration.Release ? "/p:Configuration=Release" : string.Empty };
-        Process.Start(start_info)?.WaitForExit();
-
-        return true;
     }
 
     public static async Task<bool> generate()
@@ -232,6 +223,17 @@ public class MSBuild
         }
 
         project.Save("build/app.vcxproj");
+
+        return true;
+    }
+
+    public static bool build(BuildConfiguration config)
+    {
+        if (!Directory.Exists(App.build_dir))
+            Directory.CreateDirectory(App.build_dir);
+
+        var start_info = new ProcessStartInfo() { FileName = exe, WorkingDirectory = App.build_dir, Arguments = config == BuildConfiguration.Release ? "/p:Configuration=Release" : string.Empty };
+        Process.Start(start_info)?.WaitForExit();
 
         return true;
     }

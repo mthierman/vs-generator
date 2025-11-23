@@ -28,14 +28,14 @@ public class App
         root_command.Subcommands.Add(gen);
         gen.SetAction(async parseResult =>
         {
-            await MSBuild.generate_project();
+            await MSBuild.generate();
         });
 
         Command build = new("build", "Build debug") { };
         root_command.Subcommands.Add(build);
         build.SetAction(async parseResult =>
         {
-            await MSBuild.generate_project();
+            await MSBuild.generate();
             using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.exe(), WorkingDirectory = build_dir });
             process?.WaitForExit();
         });
@@ -44,7 +44,7 @@ public class App
         root_command.Subcommands.Add(release);
         release.SetAction(async parseResult =>
         {
-            await MSBuild.generate_project();
+            await MSBuild.generate();
             using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.exe(), WorkingDirectory = build_dir, Arguments = "/p:Configuration=Release" });
             process?.WaitForExit();
         });

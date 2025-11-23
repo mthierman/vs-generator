@@ -29,29 +29,22 @@ public class App
         root_command.Subcommands.Add(gen);
         gen.SetAction(async parseResult =>
         {
-            await MSBuild.generate();
+            var ok = await MSBuild.generate();
+            return ok ? 0 : 1;
         });
 
         Command build = new("build", "Build debug") { };
         root_command.Subcommands.Add(build);
         build.SetAction(async parseResult =>
         {
-            if (await MSBuild.generate())
-            {
-                using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.exe(), WorkingDirectory = build_dir });
-                process?.WaitForExit();
-            }
+            return (await MSBuild.generate() && MSBuild.build_debug(build_dir)) ? 0 : 1;
         });
 
         Command release = new("release", "Build release") { };
         root_command.Subcommands.Add(release);
         release.SetAction(async parseResult =>
         {
-            if (await MSBuild.generate())
-            {
-                using var process = Process.Start(new ProcessStartInfo() { FileName = MSBuild.exe(), WorkingDirectory = build_dir, Arguments = "/p:Configuration=Release" });
-                process?.WaitForExit();
-            }
+            return (await MSBuild.generate() && MSBuild.build_release(build_dir)) ? 0 : 1;
         });
 
         return root_command.Parse(args).Invoke();

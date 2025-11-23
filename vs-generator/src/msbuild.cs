@@ -24,6 +24,22 @@ public class MSBuild
         return string.IsNullOrWhiteSpace(path) ? null : path;
     }
 
+    public static bool build_debug(string? working_directory)
+    {
+        using var process = Process.Start(string.IsNullOrEmpty(working_directory) ? new ProcessStartInfo() { FileName = exe() } : new ProcessStartInfo() { FileName = exe(), WorkingDirectory = working_directory });
+        process?.WaitForExit();
+
+        return true;
+    }
+
+    public static bool build_release(string? working_directory)
+    {
+        using var process = Process.Start(string.IsNullOrEmpty(working_directory) ? new ProcessStartInfo() { FileName = exe() } : new ProcessStartInfo() { FileName = exe(), WorkingDirectory = working_directory, Arguments = "/p:Configuration=Release" });
+        process?.WaitForExit();
+
+        return true;
+    }
+
     public static async Task<bool> generate()
     {
         if (!Directory.Exists(App.src_dir))

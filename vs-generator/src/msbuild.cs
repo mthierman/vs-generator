@@ -9,7 +9,7 @@ public class MSBuild
     {
         using var process = Process.Start(new ProcessStartInfo()
         {
-            FileName = "vswhere",
+            FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio\\Installer\\vswhere.exe"),
             Arguments = "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe",
             RedirectStandardOutput = true,
             UseShellExecute = false,

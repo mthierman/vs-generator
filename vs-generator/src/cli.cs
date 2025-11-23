@@ -7,10 +7,10 @@ public class CLI
         RootCommand root_command = new("vs-generator v0.0.0");
         Console.WriteLine(root_command.Description);
 
-        Command build = new("build", "Build") { };
-        root_command.Subcommands.Add(build);
+        Command gen = new("gen", "Generate build files") { };
+        root_command.Subcommands.Add(gen);
 
-        build.SetAction(async parseResult =>
+        gen.SetAction(async parseResult =>
         {
             await MSBuild.generate_project();
         });

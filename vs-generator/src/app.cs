@@ -23,8 +23,7 @@ public class App
         root_command.Subcommands.Add(gen);
         gen.SetAction(async parseResult =>
         {
-            var ok = await MSBuild.generate();
-            return ok ? 0 : 1;
+            return (await MSBuild.generate()) ? 0 : 1;
         });
 
         Command build = new("build", "Build debug") { };

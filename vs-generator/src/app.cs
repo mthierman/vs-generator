@@ -47,7 +47,9 @@ public class App
 
         sub_command["clean"].SetAction(async parseResult =>
         {
-            Directory.Delete(build_dir, true);
+            if (Directory.Exists(build_dir))
+            { Directory.Delete(build_dir, true); }
+
             return 0;
         });
 

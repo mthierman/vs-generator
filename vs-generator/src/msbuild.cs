@@ -237,4 +237,14 @@ public class MSBuild
 
         return true;
     }
+
+    public static bool clean()
+    {
+        if (!Directory.Exists(App.build_dir))
+            return false;
+
+        Directory.Delete(App.build_dir, true);
+
+        return true;
+    }
 }

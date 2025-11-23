@@ -208,8 +208,8 @@ public class MSBuild
 
         // ----- 15. Add sources from "src" folder -----
         var source_files = Directory.GetFiles(Paths.src_dir, "*.cpp");
-        var header_files = Directory.GetFiles(Paths.src_dir, "*.h");
         var module_files = Directory.GetFiles(Paths.src_dir, "*.ixx");
+        var header_files = Directory.GetFiles(Paths.src_dir, "*.h");
 
         var sources = project.AddItemGroup();
 

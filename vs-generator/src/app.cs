@@ -5,6 +5,9 @@ public class App
 {
     public static string src_dir { get; } = Path.Combine(Environment.CurrentDirectory, "src");
     public static string build_dir { get; } = Path.Combine(Environment.CurrentDirectory, "build");
+    public static string version { get; } = Assembly.GetExecutingAssembly()
+                  .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                  .InformationalVersion ?? string.Empty;
 
     public int run(string[] args)
     {
@@ -13,10 +16,6 @@ public class App
 
         if (!Directory.Exists(build_dir))
             return 1;
-
-        var version = Assembly.GetExecutingAssembly()
-                      .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                      .InformationalVersion;
 
         RootCommand root_command = new($"vs-generator {version}");
 

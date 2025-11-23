@@ -6,6 +6,12 @@ using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
 public class MSBuild
 {
+    public enum BuildConfiguration
+    {
+        Debug,
+        Release
+    }
+
     public static class Paths
     {
         public static string? exe;
@@ -38,12 +44,6 @@ public class MSBuild
                 Paths.exe = string.IsNullOrWhiteSpace(path) ? null : path;
             }
         }
-    }
-
-    public enum BuildConfiguration
-    {
-        Debug,
-        Release
     }
 
     public static async Task<bool> generate()

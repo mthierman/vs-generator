@@ -10,8 +10,7 @@ public class Clang
                              .Where(f => extensions.Contains(Path.GetExtension(f)))
                              .ToArray();
 
-        var json = JsonSerializer.Serialize(files, new JsonSerializerOptions { WriteIndented = true });
-        Console.Out.WriteLine(json);
+        Console.Out.WriteLine(JsonSerializer.Serialize(files, new JsonSerializerOptions { WriteIndented = true }));
 
         if (files.Length == 0) return;
 

@@ -36,6 +36,11 @@ public class App
 
         sub_command["new"].SetAction(async parseResult =>
         {
+            var manifest_file = Path.Combine(Environment.CurrentDirectory, "cv.json");
+
+            if (!File.Exists(manifest_file))
+                await File.WriteAllTextAsync(manifest_file, "{}");
+
             VCPkg.Start("new --application");
 
             if (!Directory.Exists(Paths.src))

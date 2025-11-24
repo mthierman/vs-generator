@@ -6,7 +6,7 @@ public class Clang
     public static async Task FormatAsync()
     {
         var extensions = new[] { ".cpp", ".c", ".h", ".hpp", ".ixx" };
-        var files = Directory.GetFiles(MSBuild.Paths.src_dir, "*.*", SearchOption.AllDirectories)
+        var files = Directory.GetFiles(Paths.src, "*.*", SearchOption.AllDirectories)
                              .Where(f => extensions.Contains(Path.GetExtension(f)))
                              .ToArray();
 

@@ -11,46 +11,6 @@ public class MSBuild
         Release
     }
 
-    public static class Paths
-    {
-        public static string? vswhere { get; } = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            "Microsoft Visual Studio\\Installer\\vswhere.exe");
-        public static string MSBuild { get; set; } = string.Empty;
-        public static string base_dir { get; } = Environment.CurrentDirectory;
-        public static string src_dir => Path.Combine(base_dir, "src");
-        public static string build_dir => Path.Combine(base_dir, "build");
-    }
-
-    static MSBuild()
-    {
-        if (!File.Exists(Paths.vswhere))
-            throw new FileNotFoundException($"vswhere.exe not found: {Paths.vswhere}");
-
-        var process = Process.Start(new ProcessStartInfo(Paths.vswhere, "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        });
-
-        if (process == null)
-            throw new InvalidOperationException("vswhere.exe failed to start");
-
-        string output = process.StandardOutput.ReadToEnd();
-        string error = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        var path = output?
-            .Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Trim())
-            .FirstOrDefault();
-
-        if (string.IsNullOrWhiteSpace(path))
-            throw new FileNotFoundException($"MSBuild.exe not found: {Paths.MSBuild}");
-
-        Paths.MSBuild = path;
-    }
-
     private static async Task GenerateSolution()
     {
         var solution_model = new SolutionModel();
@@ -67,7 +27,7 @@ public class MSBuild
 
     public static async Task<bool> Generate()
     {
-        if (!Directory.Exists(Paths.src_dir))
+        if (!Directory.Exists(Paths.src))
             return false;
 
         await GenerateSolution();
@@ -217,20 +177,20 @@ public class MSBuild
         vcpkg.AddProperty("VcpkgUseMD", "true");
 
         // ----- 15. Add sources from "src" folder -----
-        var source_files = Directory.GetFiles(Paths.src_dir, "*.cpp");
-        var module_files = Directory.GetFiles(Paths.src_dir, "*.ixx");
-        var header_files = Directory.GetFiles(Paths.src_dir, "*.h");
+        var source_files = Directory.GetFiles(Paths.src, "*.cpp");
+        var module_files = Directory.GetFiles(Paths.src, "*.ixx");
+        var header_files = Directory.GetFiles(Paths.src, "*.h");
 
         var sources = project.AddItemGroup();
 
         foreach (var source_file in source_files)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.build_dir, source_file).Replace('\\', '/'));
+            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.build, source_file).Replace('\\', '/'));
 
         foreach (var module_file in module_files)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.build_dir, module_file).Replace('\\', '/'));
+            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.build, module_file).Replace('\\', '/'));
 
         foreach (var header_file in header_files)
-            sources.AddItem("ClInclude", Path.GetRelativePath(Paths.build_dir, header_file).Replace('\\', '/'));
+            sources.AddItem("ClInclude", Path.GetRelativePath(Paths.build, header_file).Replace('\\', '/'));
 
         project.Save("build/app.vcxproj");
 
@@ -239,7 +199,7 @@ public class MSBuild
 
     public static async Task<bool> Build(BuildConfiguration config)
     {
-        Directory.CreateDirectory(Paths.build_dir);
+        Directory.CreateDirectory(Paths.build);
 
         if (!await Generate())
             return false;
@@ -248,7 +208,7 @@ public class MSBuild
             throw new InvalidOperationException("MSBuild path not set.");
 
         var args = $"/p:Configuration={(config == BuildConfiguration.Debug ? "Debug" : "Release")} /p:Platform=x64";
-        var process = Process.Start(new ProcessStartInfo(Paths.MSBuild, args) { WorkingDirectory = Paths.build_dir }) ?? throw new InvalidOperationException("Failed to start MSBuild");
+        var process = Process.Start(new ProcessStartInfo(Paths.MSBuild, args) { WorkingDirectory = Paths.build }) ?? throw new InvalidOperationException("Failed to start MSBuild");
         process.WaitForExit();
 
         return process.ExitCode == 0;
@@ -256,10 +216,10 @@ public class MSBuild
 
     public static bool Clean()
     {
-        if (!Directory.Exists(Paths.build_dir))
+        if (!Directory.Exists(Paths.build))
             return false;
 
-        Directory.Delete(Paths.build_dir, true);
+        Directory.Delete(Paths.build, true);
 
         return true;
     }

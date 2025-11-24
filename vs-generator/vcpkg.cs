@@ -2,6 +2,12 @@ using System.Diagnostics;
 
 public class VCPkg
 {
+    static VCPkg()
+    {
+        if (string.IsNullOrEmpty(Paths.vcpkg))
+            throw new Exception("VCPKG_ROOT is not set");
+    }
+
     public static void Start(string arguments)
     {
         var process_start_info = new ProcessStartInfo

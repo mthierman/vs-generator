@@ -38,10 +38,10 @@ public class App
         {
             VCPkg.Start("new --application");
 
-            if (!Directory.Exists(MSBuild.Paths.src_dir))
-                Directory.CreateDirectory(MSBuild.Paths.src_dir);
+            if (!Directory.Exists(Paths.src))
+                Directory.CreateDirectory(Paths.src);
 
-            var app_cpp = Path.Combine(MSBuild.Paths.src_dir, "app.cpp");
+            var app_cpp = Path.Combine(Paths.src, "app.cpp");
 
             if (!File.Exists(app_cpp))
             {
@@ -86,7 +86,7 @@ auto wmain() -> int {
 
         sub_command["run"].SetAction(async parseResult =>
         {
-            Process.Start(new ProcessStartInfo(Path.Combine(MSBuild.Paths.base_dir, "build", "debug", "app.exe")) { WorkingDirectory = MSBuild.Paths.base_dir })?.WaitForExit();
+            Process.Start(new ProcessStartInfo(Path.Combine(Paths.build, "debug", "app.exe")) { WorkingDirectory = Paths.root })?.WaitForExit();
 
             return 0;
         });

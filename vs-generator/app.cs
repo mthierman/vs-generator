@@ -36,21 +36,32 @@ public class App
 
         sub_command["new"].SetAction(async parseResult =>
         {
+            var process_start_info = new ProcessStartInfo
+            {
+                FileName = "vcpkg",
+                Arguments = "new --application"
+            };
+
+            process_start_info.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+            process_start_info.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+
+            Process.Start(process_start_info)?.WaitForExit();
+
             return 0;
         });
 
         sub_command["install"].SetAction(async parseResult =>
         {
-            var psi = new ProcessStartInfo
+            var process_start_info = new ProcessStartInfo
             {
                 FileName = "vcpkg",
                 Arguments = "install"
             };
-            psi.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-            psi.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
 
-            using var process = Process.Start(psi);
-            process?.WaitForExit();
+            process_start_info.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+            process_start_info.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+
+            Process.Start(process_start_info)?.WaitForExit();
         });
 
         sub_command["generate"].SetAction(async parseResult =>

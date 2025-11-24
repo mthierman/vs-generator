@@ -36,16 +36,7 @@ public class App
 
         sub_command["new"].SetAction(async parseResult =>
         {
-            var process_start_info = new ProcessStartInfo
-            {
-                FileName = "vcpkg",
-                Arguments = "new --application"
-            };
-
-            process_start_info.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-            process_start_info.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-
-            Process.Start(process_start_info)?.WaitForExit();
+            VCPkg.Start("new --application");
 
             if (!Directory.Exists(MSBuild.Paths.src_dir))
                 Directory.CreateDirectory(MSBuild.Paths.src_dir);
@@ -70,16 +61,7 @@ auto wmain() -> int {
 
         sub_command["install"].SetAction(async parseResult =>
         {
-            var process_start_info = new ProcessStartInfo
-            {
-                FileName = "vcpkg",
-                Arguments = "install"
-            };
-
-            process_start_info.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-            process_start_info.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-
-            Process.Start(process_start_info)?.WaitForExit();
+            VCPkg.Start("install");
         });
 
         sub_command["generate"].SetAction(async parseResult =>

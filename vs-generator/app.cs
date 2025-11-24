@@ -83,7 +83,7 @@ public class App
         });
     }
 
-    public static int run(string[] args)
+    public static int parse_args(string[] args)
     {
         return root_command.Parse(args).Invoke();
     }

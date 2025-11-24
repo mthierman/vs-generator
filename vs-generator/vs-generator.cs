@@ -1,1 +1,1 @@
-﻿return App.run(args);
+﻿return App.parse_args(args);

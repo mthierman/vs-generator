@@ -18,8 +18,8 @@ public class App
     private static Dictionary<string, Command> sub_command = new Dictionary<string, Command>
     {
         ["new"] = new Command("new", "Scaffold project"),
-        ["gen"] = new Command("gen", "Generate build"),
         ["install"] = new Command("install", "Install dependencies"),
+        ["generate"] = new Command("generate", "Generate build"),
         ["debug"] = new Command("debug", "Build debug"),
         ["release"] = new Command("release", "Build release"),
         ["clean"] = new Command("clean", "Clean build"),
@@ -39,11 +39,6 @@ public class App
             return 0;
         });
 
-        sub_command["gen"].SetAction(async parseResult =>
-        {
-            return (await MSBuild.Generate()) ? 0 : 1;
-        });
-
         sub_command["install"].SetAction(async parseResult =>
         {
             var psi = new ProcessStartInfo
@@ -56,6 +51,11 @@ public class App
 
             using var process = Process.Start(psi);
             process?.WaitForExit();
+        });
+
+        sub_command["generate"].SetAction(async parseResult =>
+        {
+            return (await MSBuild.Generate()) ? 0 : 1;
         });
 
         sub_command["debug"].SetAction(async parseResult =>

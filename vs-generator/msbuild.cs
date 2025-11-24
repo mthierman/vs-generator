@@ -254,14 +254,15 @@ public class MSBuild
 
     public static async Task<bool> Build(BuildConfiguration config)
     {
-        if (!Directory.Exists(Paths.build_dir))
-            Directory.CreateDirectory(Paths.build_dir);
+        Directory.CreateDirectory(Paths.build_dir);
 
         if (!await Generate())
             return false;
 
-        var start_info = new ProcessStartInfo() { FileName = Paths.exe, WorkingDirectory = Paths.build_dir, Arguments = config == BuildConfiguration.Debug ? "/p:Configuration=Debug /p:Platform=x64" : "/p:Configuration=Release /p:Platform=x64" };
-        Process.Start(start_info)?.WaitForExit();
+        var configuration = config == BuildConfiguration.Debug ? "Debug" : "Release";
+        var arguments = $"/p:Configuration={configuration} /p:Platform=x64";
+
+        Process.Start(new ProcessStartInfo { FileName = Paths.exe, WorkingDirectory = Paths.build_dir, Arguments = arguments })?.WaitForExit();
 
         return true;
     }

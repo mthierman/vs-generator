@@ -29,7 +29,7 @@ public static class Paths
         var root_path = LocateRepoRoot();
 
         if (root_path is null)
-            throw new FileNotFoundException("cv.json not found in any parent directory");
+            throw new FileNotFoundException("cv.jsonc not found in any parent directory");
 
         var vswhere_path = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
@@ -62,7 +62,7 @@ public static class Paths
 
         while (!string.IsNullOrEmpty(current))
         {
-            string manifest = Path.Combine(current, "cv.json");
+            string manifest = Path.Combine(current, "cv.jsonc");
             if (File.Exists(manifest))
                 return current;
 

@@ -36,10 +36,21 @@ public class App
 
         sub_command["new"].SetAction(async parseResult =>
         {
-            var manifest_file = Path.Combine(Environment.CurrentDirectory, "cv.json");
+            var working_directory = Environment.CurrentDirectory;
+            var manifest_file = Path.Combine(working_directory, "cv.jsonc");
+            var vcpkg_manifest = Path.Combine(working_directory, "vcpkg.json");
+            var vcpkg_configuration = Path.Combine(working_directory, "vcpkg-configuration.json");
 
-            if (!File.Exists(manifest_file))
-                await File.WriteAllTextAsync(manifest_file, "{}");
+            if (File.Exists(manifest_file) || File.Exists(vcpkg_manifest) || File.Exists(vcpkg_configuration))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine("Project already has a manifest file");
+                Console.ResetColor();
+
+                return 1;
+            }
+
+            await File.WriteAllTextAsync(manifest_file, "{}");
 
             VCPkg.Start("new --application");
 

@@ -102,14 +102,9 @@ auto wmain() -> int {
 
         sub_command["run"].SetAction(async parseResult =>
         {
-            var app = Path.Combine(Paths.build, "debug", "app.exe");
+            await MSBuild.Build(MSBuild.BuildConfiguration.Debug);
 
-            if (!File.Exists(app))
-            {
-                await MSBuild.Build(MSBuild.BuildConfiguration.Debug);
-            }
-
-            Process.Start(new ProcessStartInfo(app))?.WaitForExit();
+            Process.Start(new ProcessStartInfo(Path.Combine(Paths.build, "debug", "app.exe")))?.WaitForExit();
 
             return 0;
         });

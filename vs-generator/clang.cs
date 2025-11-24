@@ -10,7 +10,6 @@ public class Clang
                              .Where(f => extensions.Contains(Path.GetExtension(f)))
                              .ToArray();
 
-        Console.WriteLine("Files to format:");
         Console.WriteLine(JsonSerializer.Serialize(files, new JsonSerializerOptions
         {
             WriteIndented = true

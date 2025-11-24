@@ -204,7 +204,7 @@ public class MSBuild
         if (string.IsNullOrWhiteSpace(Paths.MSBuild))
             throw new InvalidOperationException("MSBuild path not set.");
 
-        var args = $"/p:Configuration={(config == BuildConfiguration.Debug ? "Debug" : "Release")} /p:Platform=x64";
+        var args = $"-nologo /p:Configuration={(config == BuildConfiguration.Debug ? "Debug" : "Release")} /p:Platform=x64";
         var process = Process.Start(new ProcessStartInfo(Paths.MSBuild, args) { WorkingDirectory = Paths.build }) ?? throw new InvalidOperationException("Failed to start MSBuild");
         process.WaitForExit();
 

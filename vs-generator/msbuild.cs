@@ -22,14 +22,11 @@ public class MSBuild
 
         solution_project.Id = Guid.NewGuid();
 
-        await SolutionSerializers.SlnXml.SaveAsync("build/app.slnx", solution_model, new CancellationToken());
+        await SolutionSerializers.SlnXml.SaveAsync(Paths.solution_file, solution_model, new CancellationToken());
     }
 
     public static async Task<bool> Generate()
     {
-        if (!Directory.Exists(Paths.src))
-            return false;
-
         await GenerateSolution();
 
         var project = ProjectRootElement.Create();
@@ -192,7 +189,7 @@ public class MSBuild
         foreach (var header_file in header_files)
             sources.AddItem("ClInclude", Path.GetRelativePath(Paths.build, header_file).Replace('\\', '/'));
 
-        project.Save("build/app.vcxproj");
+        project.Save(Paths.project_file);
 
         return true;
     }

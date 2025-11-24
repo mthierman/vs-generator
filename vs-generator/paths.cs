@@ -10,6 +10,8 @@ public static class Paths
     public static string root => _config.Value.Root;
     public static string src => Path.Combine(root, "src");
     public static string build => Path.Combine(root, "build");
+    public static string solution_file => Path.Combine(root, "build", "app.slnx");
+    public static string project_file => Path.Combine(root, "build", "app.vcxproj");
 
     // ------------------------------------------------------------
     // Strongly typed config object initialized exactly once

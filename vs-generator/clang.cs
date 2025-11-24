@@ -2,39 +2,54 @@ using System.Diagnostics;
 
 public class Clang
 {
-    public static async Task format()
+    public static async Task FormatAsync()
     {
         var extensions = new[] { ".cpp", ".c", ".h", ".hpp", ".ixx" };
         var files = Directory.GetFiles(MSBuild.Paths.src_dir, "*.*", SearchOption.AllDirectories)
                              .Where(f => extensions.Contains(Path.GetExtension(f)))
                              .ToArray();
 
-        if (files.Length == 0)
+        if (files.Length == 0) return;
+
+        var semaphore = new SemaphoreSlim(Environment.ProcessorCount);
+
+        var tasks = files.Select(async file =>
         {
-            return;
-        }
-
-        var tasks = files.Select(file => Task.Run(async () =>
-        {
-            var process = new Process();
-            process.StartInfo.FileName = "clang-format";
-            process.StartInfo.Arguments = $"-i \"{file}\"";
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.UseShellExecute = false;
-
-            process.Start();
-
-            string error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            if (!string.IsNullOrWhiteSpace(error))
+            await semaphore.WaitAsync();
+            try
             {
-                Console.WriteLine($"Error formatting {file}: {error}");
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "clang-format",
+                        Arguments = $"-i \"{file}\"",
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+
+                string output = await process.StandardOutput.ReadToEndAsync();
+                string error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (!string.IsNullOrWhiteSpace(error))
+                    Console.WriteLine($"Error formatting {file}: {error}");
             }
-        })).ToArray();
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to format {file}: {ex.Message}");
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }).ToArray();
 
         await Task.WhenAll(tasks);
-
-        Console.WriteLine("📐Formatting complete");
     }
 }

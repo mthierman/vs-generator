@@ -77,7 +77,7 @@ public class App
 
         sub_command["format"].SetAction(async parseResult =>
         {
-            await Clang.format();
+            await Clang.FormatAsync();
 
             return 0;
         });

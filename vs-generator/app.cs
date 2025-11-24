@@ -86,8 +86,7 @@ auto wmain() -> int {
 
         sub_command["run"].SetAction(async parseResult =>
         {
-            using var process = Process.Start(new ProcessStartInfo() { FileName = Path.Combine(MSBuild.Paths.base_dir, "build", "debug", "app.exe"), WorkingDirectory = MSBuild.Paths.base_dir });
-            process?.WaitForExit();
+            Process.Start(new ProcessStartInfo(Path.Combine(MSBuild.Paths.base_dir, "build", "debug", "app.exe")) { WorkingDirectory = MSBuild.Paths.base_dir })?.WaitForExit();
 
             return 0;
         });

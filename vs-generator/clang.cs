@@ -39,6 +39,8 @@ public class Clang
 
                 if (!string.IsNullOrWhiteSpace(error))
                     Console.WriteLine($"Error formatting {file}: {error}");
+
+                Console.WriteLine($"Formatted {file}");
             }
             catch (Exception ex)
             {

@@ -44,7 +44,7 @@ public class MSBuild
         }
     }
 
-    private static async Task generate_solution()
+    private static async Task GenerateSolution()
     {
         var solution_model = new SolutionModel();
 
@@ -58,12 +58,12 @@ public class MSBuild
         await SolutionSerializers.SlnXml.SaveAsync("build/app.slnx", solution_model, new CancellationToken());
     }
 
-    public static async Task<bool> generate()
+    public static async Task<bool> Generate()
     {
         if (!Directory.Exists(Paths.src_dir))
             return false;
 
-        await generate_solution();
+        await GenerateSolution();
 
         var project = ProjectRootElement.Create();
         project.DefaultTargets = "Build";
@@ -228,12 +228,12 @@ public class MSBuild
         return true;
     }
 
-    public static async Task<bool> build(BuildConfiguration config)
+    public static async Task<bool> Build(BuildConfiguration config)
     {
         if (!Directory.Exists(Paths.build_dir))
             Directory.CreateDirectory(Paths.build_dir);
 
-        if (!await generate())
+        if (!await Generate())
             return false;
 
         var start_info = new ProcessStartInfo() { FileName = Paths.exe, WorkingDirectory = Paths.build_dir, Arguments = config == BuildConfiguration.Debug ? "/p:Configuration=Debug /p:Platform=x64" : "/p:Configuration=Release /p:Platform=x64" };
@@ -242,7 +242,7 @@ public class MSBuild
         return true;
     }
 
-    public static bool clean()
+    public static bool Clean()
     {
         if (!Directory.Exists(Paths.build_dir))
             return false;

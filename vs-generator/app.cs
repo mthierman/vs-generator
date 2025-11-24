@@ -35,7 +35,7 @@ public class App
 
         sub_command["gen"].SetAction(async parseResult =>
         {
-            return (await MSBuild.generate()) ? 0 : 1;
+            return (await MSBuild.Generate()) ? 0 : 1;
         });
 
         sub_command["install"].SetAction(async parseResult =>
@@ -54,17 +54,17 @@ public class App
 
         sub_command["debug"].SetAction(async parseResult =>
         {
-            return await MSBuild.build(MSBuild.BuildConfiguration.Debug) ? 0 : 1;
+            return await MSBuild.Build(MSBuild.BuildConfiguration.Debug) ? 0 : 1;
         });
 
         sub_command["release"].SetAction(async parseResult =>
         {
-            return await MSBuild.build(MSBuild.BuildConfiguration.Release) ? 0 : 1;
+            return await MSBuild.Build(MSBuild.BuildConfiguration.Release) ? 0 : 1;
         });
 
         sub_command["clean"].SetAction(async parseResult =>
         {
-            return MSBuild.clean() ? 0 : 1;
+            return MSBuild.Clean() ? 0 : 1;
         });
 
         sub_command["run"].SetAction(async parseResult =>

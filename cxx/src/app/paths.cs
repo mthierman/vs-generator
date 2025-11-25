@@ -3,7 +3,7 @@ using System.Diagnostics;
 public partial class App
 {
     private static readonly Lazy<EnvironmentPaths> _environmentPaths = new Lazy<EnvironmentPaths>(InitializeEnvironmentPaths);
-    public static EnvironmentPaths Paths = _environmentPaths.Value;
+    public static EnvironmentPaths Paths => _environmentPaths.Value;
 
     public sealed record EnvironmentPaths(
         string root,

@@ -12,6 +12,36 @@ public class MSBuild
         Release
     }
 
+    public static async Task<int> Run(string[] args)
+    {
+        if (!Paths.Tools.HasMSBuild)
+        {
+            Console.WriteLine("MSBuild.exe not found");
+            return 1;
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = Paths.Tools.MSBuild,
+            Arguments = string.Join(" ", args),
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
+        using var process = new Process { StartInfo = startInfo };
+        process.OutputDataReceived += (s, e) => { if (e.Data != null) Console.WriteLine(e.Data); };
+        process.ErrorDataReceived += (s, e) => { if (e.Data != null) Console.Error.WriteLine(e.Data); };
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
+        await process.WaitForExitAsync();
+
+        return 0;
+    }
+
     private static async Task<int> GenerateSolution()
     {
         var solutionModel = new SolutionModel();
@@ -223,36 +253,6 @@ public class MSBuild
             return 1;
 
         Directory.Delete(Paths.Core.Build, true);
-
-        return 0;
-    }
-
-    public static async Task<int> Run(string[] args)
-    {
-        if (!Paths.Tools.HasMSBuild)
-        {
-            Console.WriteLine("MSBuild.exe not found");
-            return 1;
-        }
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = Paths.Tools.MSBuild,
-            Arguments = string.Join(" ", args),
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        using var process = new Process { StartInfo = startInfo };
-        process.OutputDataReceived += (s, e) => { if (e.Data != null) Console.WriteLine(e.Data); };
-        process.ErrorDataReceived += (s, e) => { if (e.Data != null) Console.Error.WriteLine(e.Data); };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        await process.WaitForExitAsync();
 
         return 0;
     }

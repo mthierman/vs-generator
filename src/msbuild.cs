@@ -23,7 +23,7 @@ public class MSBuild
 
         solutionProject.Id = Guid.NewGuid();
 
-        await SolutionSerializers.SlnXml.SaveAsync(Paths.SolutionFile, solutionModel, new CancellationToken());
+        await SolutionSerializers.SlnXml.SaveAsync(Paths.Core.SolutionFile, solutionModel, new CancellationToken());
 
         return 0;
     }
@@ -178,38 +178,38 @@ public class MSBuild
         vcpkg.AddProperty("VcpkgUseMD", "true");
 
         // ----- 15. Add sources from "src" folder -----
-        var sourceFiles = Directory.GetFiles(Paths.Src, "*.cpp");
-        var moduleFiles = Directory.GetFiles(Paths.Src, "*.ixx");
-        var headerFiles = Directory.GetFiles(Paths.Src, "*.h");
+        var sourceFiles = Directory.GetFiles(Paths.Core.Src, "*.cpp");
+        var moduleFiles = Directory.GetFiles(Paths.Core.Src, "*.ixx");
+        var headerFiles = Directory.GetFiles(Paths.Core.Src, "*.h");
 
         var sources = project.AddItemGroup();
 
         foreach (var sourceFile in sourceFiles)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.Build, sourceFile).Replace('\\', '/'));
+            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.Core.Build, sourceFile).Replace('\\', '/'));
 
         foreach (var moduleFile in moduleFiles)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.Build, moduleFile).Replace('\\', '/'));
+            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.Core.Build, moduleFile).Replace('\\', '/'));
 
         foreach (var headerFile in headerFiles)
-            sources.AddItem("ClInclude", Path.GetRelativePath(Paths.Build, headerFile).Replace('\\', '/'));
+            sources.AddItem("ClInclude", Path.GetRelativePath(Paths.Core.Build, headerFile).Replace('\\', '/'));
 
-        project.Save(Paths.ProjectFile);
+        project.Save(Paths.Core.ProjectFile);
 
         return 0;
     }
 
     public static async Task<int> Build(BuildConfiguration config)
     {
-        Directory.CreateDirectory(Paths.Build);
+        Directory.CreateDirectory(Paths.Core.Build);
 
         if (await Generate() != 0)
             return 1;
 
-        if (string.IsNullOrWhiteSpace(Paths.MSBuild))
+        if (string.IsNullOrWhiteSpace(Paths.Tools.MSBuild))
             throw new InvalidOperationException("MSBuild path not set.");
 
         var args = $"-nologo -v:minimal /p:Configuration={(config == BuildConfiguration.Debug ? "Debug" : "Release")} /p:Platform=x64";
-        var process = Process.Start(new ProcessStartInfo(Paths.MSBuild, args) { WorkingDirectory = Paths.Build }) ?? throw new InvalidOperationException("Failed to start MSBuild");
+        var process = Process.Start(new ProcessStartInfo(Paths.Tools.MSBuild, args) { WorkingDirectory = Paths.Core.Build }) ?? throw new InvalidOperationException("Failed to start MSBuild");
         process.WaitForExit();
 
         Console.Error.WriteLine();
@@ -219,10 +219,10 @@ public class MSBuild
 
     public static int Clean()
     {
-        if (!Directory.Exists(Paths.Build))
+        if (!Directory.Exists(Paths.Core.Build))
             return 1;
 
-        Directory.Delete(Paths.Build, true);
+        Directory.Delete(Paths.Core.Build, true);
 
         return 0;
     }

@@ -46,7 +46,7 @@ public static partial class App
             }
 
             var working_directory = Environment.CurrentDirectory;
-            var manifest_file = Path.Combine(working_directory, "cv.jsonc");
+            var manifest_file = Path.Combine(working_directory, "cxx.jsonc");
             var vcpkg_manifest = Path.Combine(working_directory, "vcpkg.json");
             var vcpkg_configuration = Path.Combine(working_directory, "vcpkg-configuration.json");
 

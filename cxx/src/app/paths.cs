@@ -18,9 +18,32 @@ public partial class App
 
     private static EnvironmentPaths InitializeEnvironmentPaths()
     {
-        var root_path = LocateRepoRoot();
+        var manifest_file = string.Empty;
+        var root = string.Empty;
 
-        if (root_path is null)
+        var current_directory = Environment.CurrentDirectory;
+
+        while (!string.IsNullOrEmpty(current_directory))
+        {
+            var manifest = Path.Combine(current_directory, "cv.jsonc");
+
+            if (File.Exists(manifest))
+            {
+                manifest_file = manifest;
+                root = current_directory;
+
+                break;
+            }
+
+            var parent = Directory.GetParent(current_directory);
+
+            if (parent == null)
+                break;
+
+            current_directory = parent.FullName;
+        }
+
+        if (root is null)
             throw new FileNotFoundException("cv.jsonc not found in any parent directory");
 
         var vswhere_path = Path.Combine(
@@ -42,32 +65,12 @@ public partial class App
 
         var msbuild_path = LocateMSBuild(vswhere_path);
 
-        var src = Path.Combine(root_path, "src");
-        var build = Path.Combine(root_path, "build");
-        var solution_file = Path.Combine(root_path, "build", "app.slnx");
-        var project_file = Path.Combine(root_path, "build", "app.vcxproj");
+        var src = Path.Combine(root, "src");
+        var build = Path.Combine(root, "build");
+        var solution_file = Path.Combine(root, "build", "app.slnx");
+        var project_file = Path.Combine(root, "build", "app.vcxproj");
 
-        return new EnvironmentPaths(root_path, vswhere_path, msbuild_path, vcpkg_path, src, build, solution_file, project_file);
-    }
-
-    private static string LocateRepoRoot()
-    {
-        string? current = Environment.CurrentDirectory;
-
-        while (!string.IsNullOrEmpty(current))
-        {
-            string manifest = Path.Combine(current, "cv.jsonc");
-            if (File.Exists(manifest))
-                return current;
-
-            var parent = Directory.GetParent(current);
-            if (parent == null)
-                break;
-
-            current = parent.FullName;
-        }
-
-        return null!;
+        return new EnvironmentPaths(root, vswhere_path, msbuild_path, vcpkg_path, src, build, solution_file, project_file);
     }
 
     private static string LocateMSBuild(string vswherePath)

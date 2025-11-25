@@ -20,13 +20,13 @@ public static partial class App
     private static Dictionary<string, Command> sub_command = new Dictionary<string, Command>
     {
         ["new"] = new Command("new", "New project"),
-        ["install"] = new Command("install", "Install dependencies"),
-        ["generate"] = new Command("generate", "Generate build"),
-        ["build"] = new Command("build", "Build") { build_configuration },
-        ["clean"] = new Command("clean", "Clean build"),
-        ["run"] = new Command("run", "Build & run") { build_configuration },
-        ["publish"] = new Command("publish", "Publish"),
-        ["format"] = new Command("format", "Format sources"),
+        ["install"] = new Command("install", "Install project dependencies"),
+        ["generate"] = new Command("generate", "Generate project build"),
+        ["build"] = new Command("build", "Build project") { build_configuration },
+        ["run"] = new Command("run", "Run project") { build_configuration },
+        ["publish"] = new Command("publish", "Publish project"),
+        ["clean"] = new Command("clean", "Clean project"),
+        ["format"] = new Command("format", "Format project sources"),
     };
 
     static App()
@@ -65,14 +65,14 @@ public static partial class App
             return 0;
         });
 
-        sub_command["clean"].SetAction(async parseResult =>
-        {
-            return MSBuild.Clean() ? 0 : 1;
-        });
-
         sub_command["publish"].SetAction(async parseResult =>
         {
             return 0;
+        });
+
+        sub_command["clean"].SetAction(async parseResult =>
+        {
+            return MSBuild.Clean() ? 0 : 1;
         });
 
         sub_command["format"].SetAction(async parseResult =>

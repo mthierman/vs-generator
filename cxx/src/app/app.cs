@@ -42,7 +42,7 @@ public static partial class App
 
         sub_command["install"].SetAction(async parseResult =>
         {
-            return VCPkg.Start("install");
+            return RunVcpkg("install");
         });
 
         sub_command["generate"].SetAction(async parseResult =>
@@ -104,7 +104,7 @@ public static partial class App
 
         await File.WriteAllTextAsync(blank_manifest_file, "{}");
 
-        VCPkg.Start("new --application");
+        RunVcpkg("new", "--application");
 
         if (!Directory.Exists(Paths.src))
             Directory.CreateDirectory(Paths.src);
@@ -123,6 +123,23 @@ auto wmain() -> int {
 }
 ".Trim());
         }
+
+        return 0;
+    }
+
+    public static int RunVcpkg(params string[] arguments)
+    {
+        var start_info = new ProcessStartInfo("vcpkg");
+
+        foreach (var argument in arguments)
+        {
+            start_info.ArgumentList.Add(argument);
+        }
+
+        start_info.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+        start_info.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+
+        Process.Start(start_info)?.WaitForExit();
 
         return 0;
     }

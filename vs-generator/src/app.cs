@@ -1,4 +1,6 @@
 using System.CommandLine;
+// using System.CommandLine.Completions;
+// using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Reflection;
 

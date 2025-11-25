@@ -262,6 +262,16 @@ public class MSBuild
                 Directory.Delete(buildDir, true);
         }
 
+        string[] vsFiles = { Paths.Core.SolutionFile, Paths.Core.ProjectFile };
+
+        foreach (string vsFile in vsFiles)
+        {
+            var vsFilePath = Path.Combine(Paths.Core.Build, vsFile);
+
+            if (File.Exists(vsFilePath))
+                File.Delete(vsFilePath);
+        }
+
         return 0;
     }
 }

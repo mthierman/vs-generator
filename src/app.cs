@@ -46,10 +46,8 @@ public static class App
 
         if (vcpkgRoot != null)
         {
-            var vcpkgExe = Path.Combine(vcpkgRoot, "vcpkg.exe");
-
-            if (File.Exists(vcpkgExe))
-                vcpkg = vcpkgExe;
+            if (File.Exists(Path.Combine(vcpkgRoot, "vcpkg.exe")))
+                vcpkg = Path.Combine(vcpkgRoot, "vcpkg.exe");
         }
 
         // Set src/build paths

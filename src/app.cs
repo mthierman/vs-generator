@@ -172,9 +172,11 @@ public static class App
         return RootCommand.Parse(args).Invoke();
     }
 
-    public static async Task<int> RunTask(string command, string[] args)
+    public static async Task<int> RunProcess(string command, string[] args)
     {
-        if (!App.Paths.Tools.HasMSBuild)
+        var verifiedCommand = FindOnPath(command);
+
+        if (verifiedCommand == null)
         {
             Console.WriteLine("MSBuild.exe not found");
             return 1;
@@ -182,7 +184,7 @@ public static class App
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = App.Paths.Tools.MSBuild,
+            FileName = verifiedCommand,
             Arguments = string.Join(" ", args),
             RedirectStandardOutput = true,
             RedirectStandardError = true,

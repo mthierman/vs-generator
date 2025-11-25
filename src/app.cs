@@ -13,10 +13,10 @@ public static class App
     public sealed record EnvironmentPaths(
         string Root,
         string Manifest,
-        string Vswhere,
-        string MSBuild,
-        string Vcpkg,
-        string ClangFormat,
+        string? Vswhere,
+        string? MSBuild,
+        string? Vcpkg,
+        string? ClangFormat,
         string Src,
         string Build,
         string SolutionFile,
@@ -34,9 +34,6 @@ public static class App
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
             @"Microsoft Visual Studio\Installer\vswhere.exe");
 
-        if (!File.Exists(vswhere))
-            throw new FileNotFoundException("vswhere.exe not found");
-
         // Find MSBuild
         var msbuild = FindMSBuild(vswhere) ?? string.Empty;
 
@@ -45,7 +42,6 @@ public static class App
 
         // Find vcpkg
         var vcpkgRoot = Environment.GetEnvironmentVariable("VCPKG_ROOT");
-
         var vcpkg = string.Empty;
 
         if (vcpkgRoot != null)
@@ -53,7 +49,7 @@ public static class App
             var vcpkgExe = Path.Combine(vcpkgRoot, "vcpkg.exe");
 
             if (File.Exists(vcpkgExe))
-                vcpkg = Path.Combine(vcpkgRoot, "vcpkg.exe");
+                vcpkg = vcpkgExe;
         }
 
         // Set src/build paths

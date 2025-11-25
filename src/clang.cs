@@ -1,6 +1,4 @@
 using System.Diagnostics;
-// using System.Text.Json;
-using static App;
 
 public class Clang
 {
@@ -46,7 +44,7 @@ public class Clang
     {
         var extensions = new[] { ".c", ".cpp", ".cxx", ".h", ".hpp", ".hxx", ".ixx" };
 
-        var files = Directory.GetFiles(Paths.Core.Src, "*.*", SearchOption.AllDirectories)
+        var files = Directory.GetFiles(App.Paths.Core.Src, "*.*", SearchOption.AllDirectories)
                              .Where(f => extensions.Contains(Path.GetExtension(f)))
                              .ToArray();
 

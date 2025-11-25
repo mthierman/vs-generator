@@ -252,24 +252,24 @@ public class MSBuild
         if (!Directory.Exists(Paths.Core.Build))
             return 1;
 
-        string[] configurations = { "debug", "release" };
+        string[] dirs = { "debug", "release" };
 
-        foreach (string configuration in configurations)
+        foreach (string dir in dirs)
         {
-            var buildDir = Path.Combine(Paths.Core.Build, configuration);
+            var markedDir = Path.Combine(Paths.Core.Build, dir);
 
-            if (Directory.Exists(buildDir))
-                Directory.Delete(buildDir, true);
+            if (Directory.Exists(markedDir))
+                Directory.Delete(markedDir, true);
         }
 
-        string[] vsFiles = { Paths.Core.SolutionFile, Paths.Core.ProjectFile };
+        string[] files = { Paths.Core.SolutionFile, Paths.Core.ProjectFile };
 
-        foreach (string vsFile in vsFiles)
+        foreach (string file in files)
         {
-            var vsFilePath = Path.Combine(Paths.Core.Build, vsFile);
+            var markedFile = Path.Combine(Paths.Core.Build, file);
 
-            if (File.Exists(vsFilePath))
-                File.Delete(vsFilePath);
+            if (File.Exists(markedFile))
+                File.Delete(markedFile);
         }
 
         return 0;

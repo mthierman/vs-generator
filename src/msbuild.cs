@@ -14,16 +14,16 @@ public class MSBuild
 
     private static async Task<int> GenerateSolution()
     {
-        var solution_model = new SolutionModel();
+        var solutionModel = new SolutionModel();
 
-        solution_model.AddPlatform("x64");
-        solution_model.AddPlatform("x86");
+        solutionModel.AddPlatform("x64");
+        solutionModel.AddPlatform("x86");
 
-        var solution_project = solution_model.AddProject("app.vcxproj");
+        var solutionProject = solutionModel.AddProject("app.vcxproj");
 
-        solution_project.Id = Guid.NewGuid();
+        solutionProject.Id = Guid.NewGuid();
 
-        await SolutionSerializers.SlnXml.SaveAsync(Paths.SolutionFile, solution_model, new CancellationToken());
+        await SolutionSerializers.SlnXml.SaveAsync(Paths.SolutionFile, solutionModel, new CancellationToken());
 
         return 0;
     }
@@ -73,14 +73,14 @@ public class MSBuild
         }
 
         // ----- 4. ProjectConfigurations (must be AFTER config groups) -----
-        var project_configurations = project.AddItemGroup();
-        project_configurations.Label = "ProjectConfigurations";
+        var projectConfigurations = project.AddItemGroup();
+        projectConfigurations.Label = "ProjectConfigurations";
 
         foreach (var config in configurations)
         {
             foreach (var platform in platforms)
             {
-                var item = project_configurations.AddItem("ProjectConfiguration", $"{config}|{platform}");
+                var item = projectConfigurations.AddItem("ProjectConfiguration", $"{config}|{platform}");
                 item.AddMetadata("Configuration", config);
                 item.AddMetadata("Platform", platform);
             }
@@ -90,8 +90,8 @@ public class MSBuild
         project.AddImport(@"$(VCTargetsPath)\Microsoft.Cpp.props");
 
         // ----- 6. ExtensionSettings ImportGroup -----
-        var extension_settings = project.AddImportGroup();
-        extension_settings.Label = "ExtensionSettings";
+        var extensionSettings = project.AddImportGroup();
+        extensionSettings.Label = "ExtensionSettings";
 
         // ----- 7. Shared ImportGroup -----
         var shared = project.AddImportGroup();
@@ -102,11 +102,11 @@ public class MSBuild
         {
             foreach (var platform in platforms)
             {
-                var property_sheets = project.AddImportGroup();
-                property_sheets.Label = "PropertySheets";
-                property_sheets.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
+                var propertySheets = project.AddImportGroup();
+                propertySheets.Label = "PropertySheets";
+                propertySheets.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
 
-                var import = property_sheets.AddImport(@"$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props");
+                var import = propertySheets.AddImport(@"$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props");
                 import.Condition = $"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')";
                 import.Label = "LocalAppDataPlatform";
             }
@@ -121,11 +121,11 @@ public class MSBuild
         {
             foreach (var platform in platforms)
             {
-                var project_settings = project.AddItemDefinitionGroup();
-                project_settings.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
+                var projectSettings = project.AddItemDefinitionGroup();
+                projectSettings.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
 
                 // ----- ClCompile -----
-                var cl_compile = project_settings.AddItemDefinition("ClCompile");
+                var cl_compile = projectSettings.AddItemDefinition("ClCompile");
 
                 cl_compile.AddMetadata("WarningLevel", "Level4", false);
                 cl_compile.AddMetadata("TreatWarningAsError", "true", false);
@@ -154,7 +154,7 @@ public class MSBuild
                 }
 
                 // ----- Link -----
-                var link = project_settings.AddItemDefinition("Link");
+                var link = projectSettings.AddItemDefinition("Link");
                 link.AddMetadata("SubSystem", "Console", false);
                 link.AddMetadata("GenerateDebugInformation", "true", false);
             }
@@ -178,20 +178,20 @@ public class MSBuild
         vcpkg.AddProperty("VcpkgUseMD", "true");
 
         // ----- 15. Add sources from "src" folder -----
-        var source_files = Directory.GetFiles(Paths.Src, "*.cpp");
-        var module_files = Directory.GetFiles(Paths.Src, "*.ixx");
-        var header_files = Directory.GetFiles(Paths.Src, "*.h");
+        var sourceFiles = Directory.GetFiles(Paths.Src, "*.cpp");
+        var moduleFiles = Directory.GetFiles(Paths.Src, "*.ixx");
+        var headerFiles = Directory.GetFiles(Paths.Src, "*.h");
 
         var sources = project.AddItemGroup();
 
-        foreach (var source_file in source_files)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.Build, source_file).Replace('\\', '/'));
+        foreach (var sourceFile in sourceFiles)
+            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.Build, sourceFile).Replace('\\', '/'));
 
-        foreach (var module_file in module_files)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.Build, module_file).Replace('\\', '/'));
+        foreach (var moduleFile in moduleFiles)
+            sources.AddItem("ClCompile", Path.GetRelativePath(Paths.Build, moduleFile).Replace('\\', '/'));
 
-        foreach (var header_file in header_files)
-            sources.AddItem("ClInclude", Path.GetRelativePath(Paths.Build, header_file).Replace('\\', '/'));
+        foreach (var headerFile in headerFiles)
+            sources.AddItem("ClInclude", Path.GetRelativePath(Paths.Build, headerFile).Replace('\\', '/'));
 
         project.Save(Paths.ProjectFile);
 

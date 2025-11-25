@@ -4,6 +4,7 @@ using static App;
 
 public class Clang
 {
+    private static SemaphoreSlim semaphore = new SemaphoreSlim(Environment.ProcessorCount);
     public static async Task FormatAsync()
     {
         var extensions = new[] { ".cpp", ".c", ".h", ".hpp", ".ixx" };
@@ -14,8 +15,6 @@ public class Clang
         Console.Out.WriteLine(JsonSerializer.Serialize(files, new JsonSerializerOptions { WriteIndented = true }));
 
         if (files.Length == 0) return;
-
-        var semaphore = new SemaphoreSlim(Environment.ProcessorCount);
 
         Console.Error.WriteLine();
         var tasks = files.Select(async file =>

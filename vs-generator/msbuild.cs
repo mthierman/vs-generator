@@ -127,8 +127,8 @@ public class MSBuild
                 cl_compile.AddMetadata("TreatWarningAsError", "true", false);
                 cl_compile.AddMetadata("SDLCheck", "true", false);
                 cl_compile.AddMetadata("ConformanceMode", "true", false);
-                cl_compile.AddMetadata("LanguageStandard", "stdcpp23", false);
-                cl_compile.AddMetadata("LanguageStandard_C", "stdc17", false);
+                cl_compile.AddMetadata("LanguageStandard", "stdcpplatest", false);
+                cl_compile.AddMetadata("LanguageStandard_C", "stdclatest", false);
                 cl_compile.AddMetadata("BuildStlModules", "true", false);
 
                 // PreprocessorDefinitions

@@ -2,7 +2,6 @@ using System.Diagnostics;
 
 public partial class App
 {
-    public static string manifest_file = "cxx.jsonc";
     private static readonly Lazy<EnvironmentPaths> _environmentPaths = new Lazy<EnvironmentPaths>(InitializeEnvironmentPaths);
     public static EnvironmentPaths Paths = _environmentPaths.Value;
 

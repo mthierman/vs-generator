@@ -13,6 +13,7 @@ public static partial class App
     public static string version { get; } = Assembly.GetExecutingAssembly()
               .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
               .InformationalVersion ?? string.Empty;
+    public static string manifest_file = "cxx.jsonc";
 
     private static RootCommand root_command { get; } = new RootCommand($"cxx {version}");
     private static Argument<MSBuild.BuildConfiguration> build_configuration = new("build_configuration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };

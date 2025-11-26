@@ -9,6 +9,24 @@ public static class App
               .InformationalVersion ?? "0.0.0";
     public static string ManifestFile = "cxx.jsonc";
 
+    private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {Version}");
+    private static Argument<MSBuild.BuildConfiguration> BuildConfiguration = new("BuildConfiguration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
+    private static Argument<string[]> MSBuildArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
+    private static Argument<string[]> VcpkgArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
+    private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
+    {
+        ["msbuild"] = new Command("msbuild", "MSBuild command") { MSBuildArguments },
+        ["vcpkg"] = new Command("vcpkg", "vcpkg command") { VcpkgArguments },
+        ["new"] = new Command("new", "New project"),
+        ["install"] = new Command("install", "Install project dependencies"),
+        ["generate"] = new Command("generate", "Generate project build"),
+        ["build"] = new Command("build", "Build project") { BuildConfiguration },
+        ["run"] = new Command("run", "Run project") { BuildConfiguration },
+        ["publish"] = new Command("publish", "Publish project"),
+        ["clean"] = new Command("clean", "Clean project"),
+        ["format"] = new Command("format", "Format project sources"),
+    };
+
     private static readonly Lazy<EnvironmentPaths> _environmentPaths = new Lazy<EnvironmentPaths>(InitializeEnvironmentPaths);
     public static EnvironmentPaths Paths => _environmentPaths.Value;
     public sealed record EnvironmentPaths(CorePaths Core, ToolsPaths Tools);
@@ -90,22 +108,6 @@ public static class App
         return new EnvironmentPaths(corePaths, toolsPaths);
     }
 
-    private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {Version}");
-    private static Argument<MSBuild.BuildConfiguration> BuildConfiguration = new("BuildConfiguration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
-    private static Argument<string[]> MSBuildArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
-    private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
-    {
-        ["msbuild"] = new Command("msbuild", "MSBuild command") { MSBuildArguments },
-        ["new"] = new Command("new", "New project"),
-        ["install"] = new Command("install", "Install project dependencies"),
-        ["generate"] = new Command("generate", "Generate project build"),
-        ["build"] = new Command("build", "Build project") { BuildConfiguration },
-        ["run"] = new Command("run", "Run project") { BuildConfiguration },
-        ["publish"] = new Command("publish", "Publish project"),
-        ["clean"] = new Command("clean", "Clean project"),
-        ["format"] = new Command("format", "Format project sources"),
-    };
-
     static App()
     {
         foreach (var command in SubCommand.Values)
@@ -118,6 +120,13 @@ public static class App
             var args = parseResult.GetValue(MSBuildArguments) ?? Array.Empty<string>();
 
             return await RunProcess(Paths.Tools.MSBuild, args);
+        });
+
+        SubCommand["vcpkg"].SetAction(async parseResult =>
+        {
+            var args = parseResult.GetValue(VcpkgArguments) ?? Array.Empty<string>();
+
+            return await RunProcess(Paths.Tools.Vcpkg, args);
         });
 
         SubCommand["new"].SetAction(async parseResult =>

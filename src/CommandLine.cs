@@ -46,7 +46,7 @@ public static class CommandLine
             startInfo.ArgumentList.Add("-nol");
             startInfo.ArgumentList.Add("-nop");
             startInfo.ArgumentList.Add("-c");
-            startInfo.ArgumentList.Add($"& '{devShell}'");
+            startInfo.ArgumentList.Add($"& '{devShell}' && [System.Environment]::GetEnvironmentVariables() | ConvertTo-Json");
 
             using var process = Process.Start(startInfo)!;
 

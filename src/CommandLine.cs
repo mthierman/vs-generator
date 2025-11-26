@@ -16,6 +16,7 @@ public static class CommandLine
     {
         ["devenv"] = new Command("devenv", "Refresh developer environment"),
         ["devenv_print"] = new Command("devenv_print", "Print developer environment"),
+        ["devenv_msbuild"] = new Command("devenv_msbuild", "Run MSBuild from developer environment"),
         ["msbuild"] = new Command("msbuild", "MSBuild command") { MSBuildArguments },
         ["vcpkg"] = new Command("vcpkg", "vcpkg command") { VcpkgArguments },
         ["new"] = new Command("new", "New project"),
@@ -53,6 +54,22 @@ public static class CommandLine
             {
                 Console.WriteLine($"{kv.Key} = {kv.Value}");
             }
+        });
+
+        SubCommand["devenv_msbuild"].SetAction(async parseResult =>
+        {
+            var startInfo = await MSBuild.DevEnvProcessStartInfo("msbuild");
+
+            using var process = Process.Start(startInfo)
+                       ?? throw new InvalidOperationException("Failed to start MSBuild.");
+
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+
+            Console.WriteLine(await stdoutTask);
+            Console.Error.WriteLine(await stderrTask);
         });
 
         SubCommand["msbuild"].SetAction(async parseResult =>

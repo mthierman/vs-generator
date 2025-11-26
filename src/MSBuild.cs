@@ -16,10 +16,14 @@ public static class MSBuild
 
     public static Dictionary<string, string>? DevEnv;
 
-    public static ProcessStartInfo DevEnvProcessStartInfo(string fileName)
+    public static async Task<ProcessStartInfo> DevEnvProcessStartInfo(string fileName)
     {
         if (DevEnv == null)
-            throw new InvalidOperationException("Developer environment has not been loaded");
+            await RefreshDevEnv();
+
+        var json = File.ReadAllText(Project.SystemFolders.DevEnvJson);
+        var envFromJson = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                 ?? throw new InvalidOperationException("Failed to parse DevShell environment JSON.");
 
         var startInfo = new ProcessStartInfo(fileName)
         {
@@ -27,7 +31,7 @@ public static class MSBuild
             RedirectStandardError = true
         };
 
-        foreach (var kv in DevEnv)
+        foreach (var kv in envFromJson)
             startInfo.Environment[kv.Key] = kv.Value;
 
         return startInfo;

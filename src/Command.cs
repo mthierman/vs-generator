@@ -47,7 +47,7 @@ public static class CommandLine
 
         SubCommand["new"].SetAction(async parseResult =>
         {
-            return await App.NewProject();
+            return await Project.New();
         });
 
         SubCommand["install"].SetAction(async parseResult =>

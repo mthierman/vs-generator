@@ -58,7 +58,7 @@ public static partial class App
         var tools = new ToolsPaths(
             VSWhere: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft Visual Studio\Installer\vswhere.exe"),
             MSBuild: Find.MSBuild(vswhere),
-            Vcpkg: FindVcpkg(),
+            Vcpkg: Find.Vcpkg(),
             ClangFormat: Find.OnPath("clang-format.exe")
         );
 

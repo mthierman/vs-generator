@@ -3,6 +3,8 @@ namespace cxx;
 public static class Project
 {
     public static string ManifestFile = "cxx.jsonc";
+    public static string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    public static string appData = Path.Combine(localAppData, "cxx");
 
     private static readonly Lazy<CorePaths> _corePaths = new Lazy<CorePaths>(InitCorePaths);
     private static readonly Lazy<ToolsPaths> _toolPaths = new Lazy<ToolsPaths>(InitToolsPaths);

@@ -1,5 +1,7 @@
 using System.Diagnostics;
 
+namespace cxx;
+
 public class Clang
 {
     private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);

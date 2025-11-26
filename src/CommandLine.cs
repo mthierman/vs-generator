@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace cxx;
 
@@ -41,7 +42,12 @@ public static class CommandLine
 
         SubCommand["devenv_print"].SetAction(async parseResult =>
         {
-            await MSBuild.RefreshDevEnv();
+            if (!File.Exists(Project.SystemFolders.DevEnvJson))
+                await MSBuild.RefreshDevEnv();
+
+            var json = File.ReadAllText(Project.SystemFolders.DevEnvJson);
+            MSBuild.DevEnv = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                     ?? throw new InvalidOperationException("Failed to parse DevShell environment JSON.");
 
             foreach (var kv in MSBuild.DevEnv!)
             {

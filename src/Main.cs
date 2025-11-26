@@ -1,1 +1,1 @@
-﻿return cxx.CommandLine.RootCommand.Parse(args).Invoke();
+﻿return cxx.App.Run(args);

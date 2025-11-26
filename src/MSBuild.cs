@@ -3,6 +3,8 @@ using Microsoft.Build.Construction;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
+namespace cxx;
+
 public class MSBuild
 {
     public enum BuildConfiguration

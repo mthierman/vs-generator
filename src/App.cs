@@ -3,92 +3,11 @@ using System.Reflection;
 
 namespace cxx;
 
-public static class App
+public static partial class App
 {
     public static string Version { get; } = Assembly.GetExecutingAssembly()
               .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
               .InformationalVersion ?? "0.0.0";
-    public static string ManifestFile = "cxx.jsonc";
-    private static readonly Lazy<EnvironmentPaths> _environmentPaths = new Lazy<EnvironmentPaths>(InitializeEnvironmentPaths);
-    public static EnvironmentPaths Paths => _environmentPaths.Value;
-    public sealed record EnvironmentPaths(CorePaths Core, ToolsPaths Tools);
-    public sealed record CorePaths
-    {
-        public required string Root { get; init; }
-        public required string Manifest { get; init; }
-        public required string Src { get; init; }
-        public required string Build { get; init; }
-        public required string SolutionFile { get; init; }
-        public required string ProjectFile { get; init; }
-
-        public bool HasRoot => Directory.Exists(Root);
-        public bool HasManifest => File.Exists(Manifest);
-        public bool HasSrc => Directory.Exists(Src);
-        public bool HasBuild => Directory.Exists(Build);
-        public bool HasSolutionFile => File.Exists(SolutionFile);
-        public bool HasProjectFile => File.Exists(ProjectFile);
-    }
-    public sealed record ToolsPaths
-    {
-        public string? VSWhere { get; init; }
-        public string? MSBuild { get; init; }
-        public string? Vcpkg { get; init; }
-        public string? ClangFormat { get; init; }
-
-        public bool HasVSWhere => !string.IsNullOrEmpty(VSWhere);
-        public bool HasMSBuild => !string.IsNullOrEmpty(MSBuild);
-        public bool HasVcpkg => !string.IsNullOrEmpty(Vcpkg);
-        public bool HasClangFormat => !string.IsNullOrEmpty(ClangFormat);
-    }
-
-    private static EnvironmentPaths InitializeEnvironmentPaths()
-    {
-        var root = FindRepoRoot() ?? throw new FileNotFoundException($"{ManifestFile} not found in any parent directory");
-        var manifest = Path.Combine(root, ManifestFile);
-        var src = Path.Combine(root, "src");
-        var build = Path.Combine(root, "build");
-        var solutionFile = Path.Combine(build, "app.slnx");
-        var projectFile = Path.Combine(build, "app.vcxproj");
-
-        var corePaths = new CorePaths
-        {
-            Root = root,
-            Manifest = manifest,
-            Src = src,
-            Build = build,
-            SolutionFile = solutionFile,
-            ProjectFile = projectFile
-        };
-
-        var vswhere = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            @"Microsoft Visual Studio\Installer\vswhere.exe");
-
-        var msbuild = FindMSBuild(vswhere);
-
-        var clangFormat = FindOnPath("clang-format.exe");
-
-        string? vcpkg = null;
-        var vcpkgRoot = Environment.GetEnvironmentVariable("VCPKG_ROOT");
-        if (!string.IsNullOrEmpty(vcpkgRoot))
-        {
-            var vcpkgExe = Path.Combine(vcpkgRoot, "vcpkg.exe");
-            if (File.Exists(vcpkgExe))
-                vcpkg = vcpkgExe;
-            else
-                vcpkg = FindOnPath("vcpkg.exe");
-        }
-
-        var toolsPaths = new ToolsPaths
-        {
-            VSWhere = vswhere,
-            MSBuild = msbuild,
-            Vcpkg = vcpkg,
-            ClangFormat = clangFormat
-        };
-
-        return new EnvironmentPaths(corePaths, toolsPaths);
-    }
 
     public static async Task<int> RunProcess(string? command, string[] args)
     {

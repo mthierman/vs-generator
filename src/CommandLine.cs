@@ -58,7 +58,14 @@ public static class CommandLine
 
         SubCommand["devenv_msbuild"].SetAction(async parseResult =>
         {
-            var startInfo = await MSBuild.DevEnvProcessStartInfo("msbuild");
+            var json = File.ReadAllText(Project.SystemFolders.DevEnvJson);
+            MSBuild.DevEnv = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                     ?? throw new InvalidOperationException("Failed to parse DevShell environment JSON.");
+
+            if (!MSBuild.DevEnv.TryGetValue("MSBUILD_EXE_PATH", out var msBuildExe))
+                throw new InvalidOperationException("MSBUILD_EXE_PATH not found in DevShell environment");
+
+            var startInfo = await MSBuild.DevEnvProcessStartInfo(msBuildExe);
 
             using var process = Process.Start(startInfo)
                        ?? throw new InvalidOperationException("Failed to start MSBuild.");

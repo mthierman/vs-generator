@@ -46,7 +46,7 @@ public static class Clang
     {
         var extensions = new[] { ".c", ".cpp", ".cxx", ".h", ".hpp", ".hxx", ".ixx" };
 
-        var files = Directory.GetFiles(Paths.Core.Src, "*.*", SearchOption.AllDirectories)
+        var files = Directory.GetFiles(Project.Core.Src, "*.*", SearchOption.AllDirectories)
                              .Where(f => extensions.Contains(Path.GetExtension(f)))
                              .ToArray();
 

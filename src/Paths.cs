@@ -2,22 +2,26 @@ using System.Diagnostics;
 
 namespace cxx;
 
-public static partial class App
+public static class Paths
 {
     public static string ManifestFile = "cxx.jsonc";
+
     private static readonly Lazy<EnvironmentPaths> _paths =
         new Lazy<EnvironmentPaths>(InitializeEnvironmentPaths);
-    public static EnvironmentPaths Paths => _paths.Value;
+    public static CorePaths Core => _paths.Value.Core;
+    public static ToolsPaths Tools => _paths.Value.Tools;
+
     public sealed record EnvironmentPaths(CorePaths Core, ToolsPaths Tools);
+
     public sealed record CorePaths(
-        string Root,
+        string ProjectRoot,
         string Manifest,
         string Src,
         string Build,
         string SolutionFile,
         string ProjectFile)
     {
-        public bool HasRoot => Directory.Exists(Root);
+        public bool HasProjectRoot => Directory.Exists(ProjectRoot);
         public bool HasManifest => File.Exists(Manifest);
         public bool HasSrc => Directory.Exists(Src);
         public bool HasBuild => Directory.Exists(Build);
@@ -39,16 +43,16 @@ public static partial class App
 
     private static EnvironmentPaths InitializeEnvironmentPaths()
     {
-        var root = Find.RepoRoot()
+        var ProjectRoot = Find.ProjectRoot()
             ?? throw new FileNotFoundException($"{ManifestFile} not found in any parent directory");
 
         var core = new CorePaths(
-            Root: root,
-            Manifest: Path.Combine(root, ManifestFile),
-            Src: Path.Combine(root, "src"),
-            Build: Path.Combine(root, "build"),
-            SolutionFile: Path.Combine(root, "build", "app.slnx"),
-            ProjectFile: Path.Combine(root, "build", "app.vcxproj")
+            ProjectRoot: ProjectRoot,
+            Manifest: Path.Combine(ProjectRoot, ManifestFile),
+            Src: Path.Combine(ProjectRoot, "src"),
+            Build: Path.Combine(ProjectRoot, "build"),
+            SolutionFile: Path.Combine(ProjectRoot, "build", "app.slnx"),
+            ProjectFile: Path.Combine(ProjectRoot, "build", "app.vcxproj")
         );
 
         var vswhere = Path.Combine(
@@ -67,6 +71,21 @@ public static partial class App
 
     public static class Find
     {
+        public static string? ProjectRoot()
+        {
+            var cwd = Environment.CurrentDirectory;
+
+            while (!string.IsNullOrEmpty(cwd))
+            {
+                if (File.Exists(Path.Combine(cwd, ManifestFile)))
+                    return cwd;
+
+                cwd = Directory.GetParent(cwd)?.FullName;
+            }
+
+            return null;
+        }
+
         public static string? OnPath(string command)
         {
             var pathEnv = Environment.GetEnvironmentVariable("PATH");
@@ -81,21 +100,6 @@ public static partial class App
                 string fullPath = Path.Combine(dir, command);
                 if (File.Exists(fullPath))
                     return fullPath;
-            }
-
-            return null;
-        }
-
-        public static string? RepoRoot()
-        {
-            var cwd = Environment.CurrentDirectory;
-
-            while (!string.IsNullOrEmpty(cwd))
-            {
-                if (File.Exists(Path.Combine(cwd, ManifestFile)))
-                    return cwd;
-
-                cwd = Directory.GetParent(cwd)?.FullName;
             }
 
             return null;

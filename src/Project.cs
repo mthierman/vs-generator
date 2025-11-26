@@ -18,7 +18,7 @@ public static class Project
         var vcpkgManifest = Path.Combine(cwd, "vcpkg.json");
         var vcpkgConfig = Path.Combine(cwd, "vcpkg-configuration.json");
 
-        if (File.Exists(App.ManifestFile) || File.Exists(vcpkgManifest) || File.Exists(vcpkgConfig))
+        if (File.Exists(Paths.ManifestFile) || File.Exists(vcpkgManifest) || File.Exists(vcpkgConfig))
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine("Project already has a manifest file");
@@ -31,10 +31,10 @@ public static class Project
 
         App.RunVcpkg("new", "--application");
 
-        if (!Directory.Exists(App.Paths.Core.Src))
-            Directory.CreateDirectory(App.Paths.Core.Src);
+        if (!Directory.Exists(Paths.Core.Src))
+            Directory.CreateDirectory(Paths.Core.Src);
 
-        var app_cpp = Path.Combine(App.Paths.Core.Src, "app.cpp");
+        var app_cpp = Path.Combine(Paths.Core.Src, "app.cpp");
 
         if (!File.Exists(app_cpp))
         {

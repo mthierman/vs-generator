@@ -4,21 +4,6 @@ namespace cxx;
 
 public static class Find
 {
-    public static string? ProjectRoot()
-    {
-        var cwd = Environment.CurrentDirectory;
-
-        while (!string.IsNullOrEmpty(cwd))
-        {
-            if (File.Exists(Path.Combine(cwd, Project.ManifestFile)))
-                return cwd;
-
-            cwd = Directory.GetParent(cwd)?.FullName;
-        }
-
-        return null;
-    }
-
     public static string? OnPath(string command)
     {
         var pathEnv = Environment.GetEnvironmentVariable("PATH");

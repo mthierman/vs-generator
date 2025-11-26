@@ -23,6 +23,36 @@ public static class Find
         return null;
     }
 
+    public static string DeveloperShell(string vswhere)
+    {
+        if (!File.Exists(vswhere))
+            throw new FileNotFoundException($"vswhere.exe not found");
+
+        using var process = Process.Start(new ProcessStartInfo(vswhere,
+            "-latest -products * -property installationPath")
+        {
+            RedirectStandardOutput = true
+        }) ?? throw new InvalidOperationException("vswhere.exe failed to start");
+
+        var output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+
+        var installPath = output
+            .Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)
+            .First()
+            .Trim();
+
+        var launchVsDevShell = Path.Combine(installPath,
+                                                    "Common7",
+                                                    "Tools",
+                                                    "Launch-VsDevShell.ps1");
+
+        if (!File.Exists(launchVsDevShell))
+            throw new FileNotFoundException("Launch-VsDevShell.ps1 not found", launchVsDevShell);
+
+        return launchVsDevShell;
+    }
+
     public static string MSBuild(string vswhere)
     {
         if (!File.Exists(vswhere))
@@ -32,10 +62,7 @@ public static class Find
             "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe")
         {
             RedirectStandardOutput = true
-        });
-
-        if (process is null)
-            throw new InvalidOperationException($"vswhere.exe not found");
+        }) ?? throw new InvalidOperationException("vswhere.exe failed to start"); ;
 
         var output = process.StandardOutput.ReadToEnd();
         process.WaitForExit();

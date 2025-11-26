@@ -51,9 +51,7 @@ public static class MSBuild
             UseShellExecute = false
         };
 
-        // Run the dev prompt, then print the environment
-        startInfo.ArgumentList.Add("/c");
-        startInfo.ArgumentList.Add($"\"{devPrompt}\" >nul 2>nul & set");
+        startInfo.Arguments = $"/c call \"{devPrompt}\" && set";
 
         using var process = Process.Start(startInfo)!;
 

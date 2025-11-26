@@ -6,12 +6,14 @@ public static class Project
 {
     public static string ManifestFile = "cxx.jsonc";
 
-    private static readonly Lazy<EnvironmentPaths> _paths =
-        new Lazy<EnvironmentPaths>(InitializeEnvironmentPaths);
-    public static CorePaths Core => _paths.Value.Core;
-    public static ToolsPaths Tools => _paths.Value.Tools;
+    private static readonly Lazy<CorePaths> _corePaths =
+        new Lazy<CorePaths>(InitializeCorePaths);
 
-    public sealed record EnvironmentPaths(CorePaths Core, ToolsPaths Tools);
+    private static readonly Lazy<ToolsPaths> _toolPaths =
+        new Lazy<ToolsPaths>(InitializeToolsPaths);
+
+    public static CorePaths Core => _corePaths.Value;
+    public static ToolsPaths Tools => _toolPaths.Value;
 
     public sealed record CorePaths(
         string ProjectRoot,
@@ -41,12 +43,12 @@ public static class Project
         public bool HasClangFormat => !string.IsNullOrEmpty(ClangFormat);
     }
 
-    private static EnvironmentPaths InitializeEnvironmentPaths()
+    private static CorePaths InitializeCorePaths()
     {
         var ProjectRoot = Find.ProjectRoot()
             ?? throw new FileNotFoundException($"{ManifestFile} not found in any parent directory");
 
-        var core = new CorePaths(
+        return new CorePaths(
             ProjectRoot: ProjectRoot,
             Manifest: Path.Combine(ProjectRoot, ManifestFile),
             Src: Path.Combine(ProjectRoot, "src"),
@@ -54,19 +56,20 @@ public static class Project
             SolutionFile: Path.Combine(ProjectRoot, "build", "app.slnx"),
             ProjectFile: Path.Combine(ProjectRoot, "build", "app.vcxproj")
         );
+    }
 
+    private static ToolsPaths InitializeToolsPaths()
+    {
         var vswhere = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
             @"Microsoft Visual Studio\Installer\vswhere.exe");
 
-        var tools = new ToolsPaths(
+        return new ToolsPaths(
             VSWhere: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft Visual Studio\Installer\vswhere.exe"),
             MSBuild: Find.MSBuild(vswhere),
             Vcpkg: Find.Vcpkg(),
             ClangFormat: Find.OnPath("clang-format.exe")
         );
-
-        return new EnvironmentPaths(core, tools);
     }
 
     public static class Find

@@ -37,27 +37,23 @@ public static class MSBuild
 
     public static async Task<int> RefreshDevEnv()
     {
-        var devShell = Find.DeveloperShell(Project.Tools.VSWhere);
+        var devPrompt = Find.DeveloperPrompt(Project.Tools.VSWhere);
 
-        var startInfo = new ProcessStartInfo("powershell")
+        if (string.IsNullOrWhiteSpace(devPrompt) || !File.Exists(devPrompt))
+            throw new FileNotFoundException("Developer prompt .bat not found", devPrompt);
+
+        Console.WriteLine($"Using DevPrompt: {devPrompt}");
+
+        var startInfo = new ProcessStartInfo("cmd.exe")
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
 
-        // Run dev shell and then dump all environment variables as KEY=VALUE
-        startInfo.ArgumentList.Add("-NoLogo");
-        startInfo.ArgumentList.Add("-NoProfile");
-        startInfo.ArgumentList.Add("-ExecutionPolicy");
-        startInfo.ArgumentList.Add("Bypass");
-        startInfo.ArgumentList.Add("-Command");
-
-        // Use Get-ChildItem Env: to get the actual environment set by the dev shell
-        startInfo.ArgumentList.Add($@"
-        & '{devShell}' | Out-Null;
-        Get-ChildItem Env: | ForEach-Object {{ ""$($_.Name)=$($_.Value)"" }}
-    ");
+        // Run the dev prompt, then print the environment
+        startInfo.ArgumentList.Add("/c");
+        startInfo.ArgumentList.Add($"\"{devPrompt}\" >nul 2>nul & set");
 
         using var process = Process.Start(startInfo)!;
 
@@ -69,36 +65,50 @@ public static class MSBuild
         var stdout = await stdoutTask;
         var stderr = await stderrTask;
 
-        if (!string.IsNullOrWhiteSpace(stderr))
+        if (!string.IsNullOrEmpty(stderr))
             Console.Error.WriteLine(stderr);
 
-        // Parse KEY=VALUE lines
-        var envDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // Parse "KEY=value" lines
+        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var line in stdout.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        foreach (var line in stdout.Split(Environment.NewLine))
         {
-            var parts = line.Split('=', 2);
-            if (parts.Length == 2)
-            {
-                envDict[parts[0]] = parts[1];
-            }
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            int eq = line.IndexOf('=');
+            if (eq <= 0)
+                continue;
+
+            string key = line[..eq];
+            string value = line[(eq + 1)..];
+
+            // Normalize: Windows stores Path as "Path"
+            // if (key.Equals("Path", StringComparison.OrdinalIgnoreCase))
+            //     key = "PATH";
+
+            env[key] = value;
         }
 
-        DevEnv = envDict;
+        // Save to static DevEnv
+        DevEnv = env;
 
-        // Serialize to JSON robustly
+        // Output folder
         Directory.CreateDirectory(Path.GetDirectoryName(Project.SystemFolders.AppLocal)!);
+
+        // JSON save
         var jsonOptions = new JsonSerializerOptions
         {
             WriteIndented = true,
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
-        string json = JsonSerializer.Serialize(envDict, jsonOptions);
+        string json = JsonSerializer.Serialize(env, jsonOptions);
         await File.WriteAllTextAsync(Project.SystemFolders.DevEnvJson, json);
 
         return 0;
     }
+
 
     private static async Task<int> GenerateSolution()
     {

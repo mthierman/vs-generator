@@ -53,6 +53,36 @@ public static class Find
         return launchVsDevShell;
     }
 
+    public static string DeveloperPrompt(string vswhere)
+    {
+        if (!File.Exists(vswhere))
+            throw new FileNotFoundException($"vswhere.exe not found");
+
+        using var process = Process.Start(new ProcessStartInfo(vswhere,
+            "-latest -products * -property installationPath")
+        {
+            RedirectStandardOutput = true
+        }) ?? throw new InvalidOperationException("vswhere.exe failed to start");
+
+        var output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+
+        var installPath = output
+            .Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)
+            .First()
+            .Trim();
+
+        var launchVsDevPrompt = Path.Combine(installPath,
+                                                    "Common7",
+                                                    "Tools",
+                                                    "VsDevCmd.bat");
+
+        if (!File.Exists(launchVsDevPrompt))
+            throw new FileNotFoundException("VsDevCmd.bat not found", launchVsDevPrompt);
+
+        return launchVsDevPrompt;
+    }
+
     public static string MSBuild(string vswhere)
     {
         if (!File.Exists(vswhere))

@@ -1,4 +1,3 @@
-using System.CommandLine;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -89,11 +88,6 @@ public static class App
         };
 
         return new EnvironmentPaths(corePaths, toolsPaths);
-    }
-
-    public static int Run(string[] args)
-    {
-        return cxx.CommandLine.RootCommand.Parse(args).Invoke();
     }
 
     public static async Task<int> RunProcess(string? command, string[] args)

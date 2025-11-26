@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace cxx;
 
 public static class Project
@@ -9,16 +7,27 @@ public static class Project
     private static readonly Lazy<CorePaths> _corePaths =
         new Lazy<CorePaths>(() =>
         {
-            var ProjectRoot = Find.ProjectRoot()
-            ?? throw new FileNotFoundException($"No {ManifestFile}");
+            var cwd = Environment.CurrentDirectory;
+            var root = string.Empty;
+
+            while (!string.IsNullOrEmpty(cwd))
+            {
+                if (File.Exists(Path.Combine(cwd, ManifestFile)))
+                    root = cwd;
+
+                cwd = Directory.GetParent(cwd)?.FullName;
+            }
+
+            if (string.IsNullOrEmpty(root))
+                throw new FileNotFoundException($"No {ManifestFile}");
 
             return new(
-                ProjectRoot: ProjectRoot,
-                Manifest: Path.Combine(ProjectRoot, ManifestFile),
-                Src: Path.Combine(ProjectRoot, "src"),
-                Build: Path.Combine(ProjectRoot, "build"),
-                SolutionFile: Path.Combine(ProjectRoot, "build", "app.slnx"),
-                ProjectFile: Path.Combine(ProjectRoot, "build", "app.vcxproj")
+                ProjectRoot: root,
+                Manifest: Path.Combine(root, ManifestFile),
+                Src: Path.Combine(root, "src"),
+                Build: Path.Combine(root, "build"),
+                SolutionFile: Path.Combine(root, "build", "app.slnx"),
+                ProjectFile: Path.Combine(root, "build", "app.vcxproj")
             );
         });
     private static readonly Lazy<ToolsPaths> _toolPaths =
@@ -52,76 +61,6 @@ public static class Project
         string? MSBuild,
         string? Vcpkg,
         string? ClangFormat);
-
-    public static class Find
-    {
-        public static string? ProjectRoot()
-        {
-            var cwd = Environment.CurrentDirectory;
-
-            while (!string.IsNullOrEmpty(cwd))
-            {
-                if (File.Exists(Path.Combine(cwd, ManifestFile)))
-                    return cwd;
-
-                cwd = Directory.GetParent(cwd)?.FullName;
-            }
-
-            return null;
-        }
-
-        public static string? OnPath(string command)
-        {
-            var pathEnv = Environment.GetEnvironmentVariable("PATH");
-
-            if (string.IsNullOrEmpty(pathEnv))
-                return null;
-
-            string[] paths = pathEnv.Split(Path.PathSeparator);
-
-            foreach (var dir in paths)
-            {
-                string fullPath = Path.Combine(dir, command);
-                if (File.Exists(fullPath))
-                    return fullPath;
-            }
-
-            return null;
-        }
-
-        public static string? MSBuild()
-        {
-            using var process = Process.Start(new ProcessStartInfo(Tools.VSWhere!,
-                "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe")
-            {
-                RedirectStandardOutput = true
-            });
-
-            if (process is null)
-                return null;
-
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-
-            var found = output
-                .Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .FirstOrDefault();
-
-            return string.IsNullOrWhiteSpace(found) ? null : found;
-        }
-
-        public static string? Vcpkg()
-        {
-            var vcpkgRoot = Environment.GetEnvironmentVariable("VCPKG_ROOT");
-
-            if (string.IsNullOrEmpty(vcpkgRoot))
-                return OnPath("vcpkg.exe");
-
-            var exe = Path.Combine(vcpkgRoot, "vcpkg.exe");
-            return File.Exists(exe) ? exe : OnPath("vcpkg.exe");
-        }
-    }
 
     public static async Task<int> New()
     {

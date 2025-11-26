@@ -18,10 +18,10 @@ public static class Project
         string SolutionFile,
         string ProjectFile);
     public sealed record ToolsPaths(
-        string? VSWhere,
-        string? MSBuild,
-        string? Vcpkg,
-        string? ClangFormat);
+        string VSWhere,
+        string MSBuild,
+        string Vcpkg,
+        string ClangFormat);
 
     private static CorePaths InitCorePaths()
     {
@@ -51,14 +51,13 @@ public static class Project
     private static ToolsPaths InitToolsPaths()
     {
         var vswhere = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            @"Microsoft Visual Studio\Installer\vswhere.exe");
-
-        if (!File.Exists(vswhere))
-            vswhere = null;
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        @"Microsoft Visual Studio\Installer\vswhere.exe");
 
         return new(
-            VSWhere: vswhere,
+            VSWhere: Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        @"Microsoft Visual Studio\Installer\vswhere.exe"),
             MSBuild: Find.MSBuild(vswhere),
             Vcpkg: Find.Vcpkg(),
             ClangFormat: Find.OnPath("clang-format.exe")
@@ -115,7 +114,7 @@ auto wmain() -> int {
         return 0;
     }
 
-    
+
     public static class Find
     {
         public static string? ProjectRoot()
@@ -152,10 +151,10 @@ auto wmain() -> int {
             return null;
         }
 
-        public static string? MSBuild(string? vswhere)
+        public static string MSBuild(string vswhere)
         {
             if (!File.Exists(vswhere))
-                return null;
+                throw new FileNotFoundException($"vswhere.exe not found");
 
             using var process = Process.Start(new ProcessStartInfo(vswhere,
                 "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe")
@@ -164,28 +163,35 @@ auto wmain() -> int {
             });
 
             if (process is null)
-                return null;
+                throw new InvalidOperationException($"vswhere.exe not found");
 
             var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
 
-            var found = output
+            var msbuild = output
                 .Split('\r', '\n', StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => s.Trim())
                 .FirstOrDefault();
 
-            return string.IsNullOrWhiteSpace(found) ? null : found;
+            if (!File.Exists(msbuild))
+                throw new FileNotFoundException($"MSBuild.exe not found");
+
+            return output;
         }
 
-        public static string? Vcpkg()
+        public static string Vcpkg()
         {
             var vcpkgRoot = Environment.GetEnvironmentVariable("VCPKG_ROOT");
 
             if (string.IsNullOrEmpty(vcpkgRoot))
-                return OnPath("vcpkg.exe");
+                throw new FileNotFoundException($"VCPKG_ROOT isn't set");
 
-            var exe = Path.Combine(vcpkgRoot, "vcpkg.exe");
-            return File.Exists(exe) ? exe : OnPath("vcpkg.exe");
+            var vcpkg = Path.Combine(vcpkgRoot, "vcpkg.exe");
+
+            if (!File.Exists(vcpkg))
+                throw new FileNotFoundException($"vcpkg.exe not found");
+
+            return vcpkg;
         }
     }
 

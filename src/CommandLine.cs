@@ -50,27 +50,21 @@ public static class CommandLine
 
             using var process = Process.Start(startInfo)!;
 
-            _ = Task.Run(async () =>
-                {
-                    string? line;
-                    while ((line = await process.StandardOutput.ReadLineAsync()) != null)
-                    {
-                        lock (ConsoleLock)
-                            Console.WriteLine(line);
-                    }
-                });
-
-            _ = Task.Run(async () =>
-                {
-                    string? line;
-                    while ((line = await process.StandardError.ReadLineAsync()) != null)
-                    {
-                        lock (ConsoleLock)
-                            Console.Error.WriteLine(line);
-                    }
-                });
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var errorTask = process.StandardError.ReadToEndAsync();
 
             await process.WaitForExitAsync();
+
+            var output = await outputTask;
+            var error = await errorTask;
+
+            if (!string.IsNullOrWhiteSpace(error))
+                Console.Error.WriteLine(error);
+            Directory.CreateDirectory(Project.SystemFolders.AppLocal);
+            var outFile = Path.Combine(Project.SystemFolders.AppLocal, "vs_env.json");
+            await File.WriteAllTextAsync(outFile, output);
+
+            Console.WriteLine($"Developer PowerShell environment saved to: {outFile}");
         });
 
         SubCommand["msbuild"].SetAction(async parseResult =>

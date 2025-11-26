@@ -7,9 +7,34 @@ public static class Project
     public static string ManifestFile = "cxx.jsonc";
 
     private static readonly Lazy<CorePaths> _corePaths =
-        new Lazy<CorePaths>(InitializeCorePaths);
+        new Lazy<CorePaths>(() =>
+        {
+            var ProjectRoot = Find.ProjectRoot()
+            ?? throw new FileNotFoundException($"No {ManifestFile}");
+
+            return new(
+                ProjectRoot: ProjectRoot,
+                Manifest: Path.Combine(ProjectRoot, ManifestFile),
+                Src: Path.Combine(ProjectRoot, "src"),
+                Build: Path.Combine(ProjectRoot, "build"),
+                SolutionFile: Path.Combine(ProjectRoot, "build", "app.slnx"),
+                ProjectFile: Path.Combine(ProjectRoot, "build", "app.vcxproj")
+            );
+        });
     private static readonly Lazy<ToolsPaths> _toolPaths =
-        new Lazy<ToolsPaths>(InitializeToolsPaths);
+        new Lazy<ToolsPaths>(() =>
+        {
+            var vswhere = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            @"Microsoft Visual Studio\Installer\vswhere.exe");
+
+            return new(
+                VSWhere: vswhere,
+                MSBuild: Find.MSBuild(),
+                Vcpkg: Find.Vcpkg(),
+                ClangFormat: Find.OnPath("clang-format.exe")
+            );
+        });
 
     public static CorePaths Core => _corePaths.Value;
     public static ToolsPaths Tools => _toolPaths.Value;
@@ -20,56 +45,13 @@ public static class Project
         string Src,
         string Build,
         string SolutionFile,
-        string ProjectFile)
-    {
-        public bool HasProjectRoot => Directory.Exists(ProjectRoot);
-        public bool HasManifest => File.Exists(Manifest);
-        public bool HasSrc => Directory.Exists(Src);
-        public bool HasBuild => Directory.Exists(Build);
-        public bool HasSolutionFile => File.Exists(SolutionFile);
-        public bool HasProjectFile => File.Exists(ProjectFile);
-    }
+        string ProjectFile);
 
     public sealed record ToolsPaths(
         string? VSWhere,
         string? MSBuild,
         string? Vcpkg,
-        string? ClangFormat)
-    {
-        public bool HasVSWhere => !string.IsNullOrEmpty(VSWhere);
-        public bool HasMSBuild => !string.IsNullOrEmpty(MSBuild);
-        public bool HasVcpkg => !string.IsNullOrEmpty(Vcpkg);
-        public bool HasClangFormat => !string.IsNullOrEmpty(ClangFormat);
-    }
-
-    private static CorePaths InitializeCorePaths()
-    {
-        var ProjectRoot = Find.ProjectRoot()
-            ?? throw new FileNotFoundException($"No {ManifestFile}");
-
-        return new(
-            ProjectRoot: ProjectRoot,
-            Manifest: Path.Combine(ProjectRoot, ManifestFile),
-            Src: Path.Combine(ProjectRoot, "src"),
-            Build: Path.Combine(ProjectRoot, "build"),
-            SolutionFile: Path.Combine(ProjectRoot, "build", "app.slnx"),
-            ProjectFile: Path.Combine(ProjectRoot, "build", "app.vcxproj")
-        );
-    }
-
-    private static ToolsPaths InitializeToolsPaths()
-    {
-        var vswhere = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            @"Microsoft Visual Studio\Installer\vswhere.exe");
-
-        return new(
-            VSWhere: vswhere,
-            MSBuild: Find.MSBuild(vswhere),
-            Vcpkg: Find.Vcpkg(),
-            ClangFormat: Find.OnPath("clang-format.exe")
-        );
-    }
+        string? ClangFormat);
 
     public static class Find
     {
@@ -109,7 +91,7 @@ public static class Project
 
         public static string? MSBuild()
         {
-            using var process = Process.Start(new ProcessStartInfo(Tools.VSWhere,
+            using var process = Process.Start(new ProcessStartInfo(Tools.VSWhere!,
                 "-latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\amd64\\MSBuild.exe")
             {
                 RedirectStandardOutput = true

@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace cxx;
 
 public static class Project

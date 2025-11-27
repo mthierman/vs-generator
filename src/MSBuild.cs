@@ -1,6 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Management.Automation;
-using System.Management.Automation.Runspaces;
 using System.Text.Json;
 using Microsoft.Build.Construction;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
@@ -60,10 +58,17 @@ public static class MSBuild
         return env;
     }
 
-    // public static void DevEnvToJson()
-    // {
+    public static async Task SaveEnvToJson(Dictionary<string, string> env)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
 
-    // }
+        using var stream = File.Create(Project.SystemFolders.DevEnvJson);
+        await JsonSerializer.SerializeAsync(stream, env, options);
+    }
 
     private static async Task<int> GenerateSolution()
     {

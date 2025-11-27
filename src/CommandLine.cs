@@ -39,7 +39,7 @@ public static class CommandLine
         SubCommand["devenv"].SetAction(async parseResult =>
         {
             var devEnv = await MSBuild.GetDevEnv();
-
+            await MSBuild.SaveEnvToJson(devEnv);
             foreach (var kv in devEnv)
             {
                 Console.WriteLine($"{kv.Key} = {kv.Value}");

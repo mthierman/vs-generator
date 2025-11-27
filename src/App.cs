@@ -50,6 +50,7 @@ public static class App
         SubCommand["vs"].SetAction(async parseResult =>
         {
             Console.WriteLine(VisualStudio.InstallPath);
+            Console.WriteLine(VisualStudio.MSBuildPath);
         });
 
         SubCommand["devenv"].SetAction(async parseResult =>

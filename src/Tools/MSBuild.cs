@@ -20,7 +20,7 @@ public static class MSBuild
     {
         var startInfo = new ProcessStartInfo
         {
-            FileName = Project.Tools.MSBuild,
+            FileName = VisualStudio.MSBuildPath,
             UseShellExecute = false,
             RedirectStandardOutput = false,
             RedirectStandardError = false,

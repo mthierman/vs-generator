@@ -59,39 +59,6 @@ public static class MSBuild
         return env;
     }
 
-    public static async Task<Dictionary<string, string>> GetDevShell()
-    {
-        var devPrompt = Find.DeveloperShell(Project.Tools.VSWhere);
-
-        string script = $@"
-            & '{devPrompt}' -Arch amd64 -HostArch amd64 -SkipAutomaticLocation | Out-Null
-            [System.Environment]::GetEnvironmentVariables()
-        ";
-
-        using var ps = PowerShell.Create();
-        ps.AddScript(script);
-
-        var results = await Task.Run(() => ps.Invoke());
-
-        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var psObj in results)
-        {
-            // fully qualify non-generic IDictionary to avoid confusion
-            if (psObj.BaseObject is System.Collections.IDictionary dict)
-            {
-                foreach (System.Collections.DictionaryEntry entry in dict)
-                {
-                    string key = entry.Key?.ToString() ?? "";
-                    string value = entry.Value?.ToString() ?? "";
-                    env[key] = value;
-                }
-            }
-        }
-
-        return env;
-    }
-
     public static async Task<string> GetCommandFromDevEnv(string command)
     {
         var devEnv = await GetDevEnv();

@@ -19,7 +19,7 @@ public static class MSBuild
 
     public static class DevEnvironmentTools
     {
-        private static readonly string CacheFile = Path.Combine(Project.SystemFolders.AppLocal, "DevToolsCache.json");
+        private static readonly string CacheFile = Path.Combine(Project.Paths.AppLocal, "DevToolsCache.json");
         private static readonly string[] ToolNames = { "MSBuild.exe", "lib.exe", "link.exe", "rc.exe" };
 
         // Lazy cache: either load synchronously from JSON or compute async if needed

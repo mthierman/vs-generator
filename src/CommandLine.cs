@@ -40,17 +40,6 @@ public static class CommandLine
         {
             var devEnv = await MSBuild.DevEnvironmentProvider.Environment;
 
-            // var json = JsonSerializer.Serialize(devEnv, new JsonSerializerOptions
-            // {
-            //     WriteIndented = true
-            // });
-
-            // File.WriteAllText(Project.SystemFolders.DevEnvJson, json);
-            // Console.WriteLine($"Saved {Project.SystemFolders.DevEnvJson}");
-
-            // var msbuild = await MSBuild.GetCommandFromDevEnv("msbuild");
-            // Console.WriteLine(msbuild);
-
             Console.WriteLine(MSBuild.DevEnvironmentTools.MSBuild());
         });
 

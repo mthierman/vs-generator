@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 // using System.Text.Json;
+using System.Management.Automation;
 
 namespace cxx;
 
@@ -62,6 +63,21 @@ public static class CommandLine
             await process.WaitForExitAsync();
 
             Console.WriteLine(output);
+
+            using (PowerShell ps = PowerShell.Create())
+            {
+                ps.AddScript("$PSVersionTable.PSVersion.ToString()");
+                var version = ps.Invoke()[0].ToString();
+                Console.WriteLine($"PowerShell version: {version}");
+
+                ps.AddScript("Get-Process | Select-Object -First 5");
+                var results = ps.Invoke();
+
+                foreach (var result in results)
+                {
+                    Console.WriteLine(result);
+                }
+            }
         });
 
         // SubCommand["devenv"].SetAction(async parseResult =>

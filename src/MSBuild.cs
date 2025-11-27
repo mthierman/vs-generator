@@ -18,15 +18,27 @@ public static class MSBuild
 
     public static class DevEnvironmentTools
     {
-        private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> _cache = new();
+        private static readonly Lazy<Task<Dictionary<string, string>>> _tools = new(async () =>
+        {
+            var toolNames = new[] { "MSBuild.exe", "lib.exe", "link.exe", "rc.exe" };
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        private static Task<string> GetTool(string toolName) =>
-            _cache.GetOrAdd(toolName, _ => new Lazy<Task<string>>(() => GetCommandFromDevEnv(toolName))).Value;
+            var tasks = toolNames.Select(async tool =>
+            {
+                dict[tool] = await GetCommandFromDevEnv(tool);
+            });
 
-        public static Task<string> MSBuild() => GetTool("MSBuild.exe");
-        public static Task<string> Lib() => GetTool("lib.exe");
-        public static Task<string> Link() => GetTool("link.exe");
-        public static Task<string> RC() => GetTool("rc.exe");
+            await Task.WhenAll(tasks);
+
+            return dict;
+        });
+
+        private static Task<Dictionary<string, string>> Tools => _tools.Value;
+
+        public static async Task<string> MSBuild() => (await Tools)["MSBuild.exe"];
+        public static async Task<string> Lib() => (await Tools)["lib.exe"];
+        public static async Task<string> Link() => (await Tools)["link.exe"];
+        public static async Task<string> RC() => (await Tools)["rc.exe"];
     }
 
     public static class DevEnvironmentProvider

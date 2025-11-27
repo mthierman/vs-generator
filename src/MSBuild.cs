@@ -57,9 +57,6 @@ public static class MSBuild
         }
     }
 
-    // public static readonly Dictionary<string, string> DeveloperEnvironment =
-    //     GetDevEnv().GetAwaiter().GetResult();
-
     public static async Task<Dictionary<string, string>> GetDevEnv()
     {
         var devPrompt = Find.DeveloperPrompt(Project.Tools.VSWhere);

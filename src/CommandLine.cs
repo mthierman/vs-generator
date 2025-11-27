@@ -45,8 +45,6 @@ public static class CommandLine
                 Console.WriteLine($"{kv.Key} = {kv.Value}");
             }
 
-            Console.WriteLine("Testing MSBuild.exe --version...");
-
             return await ExternalCommand.Run(await MSBuild.DevEnvironmentTools.MSBuild(), "-version");
         });
 

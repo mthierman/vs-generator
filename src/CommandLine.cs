@@ -39,104 +39,51 @@ public static class CommandLine
 
         SubCommand["devenv"].SetAction(async parseResult =>
         {
-            var devEnv = await MSBuild.GetDevShell();
+            var devEnv = await MSBuild.GetDevEnv();
+
+            var msbuild = await MSBuild.GetCommandFromDevEnv("msbuild");
+
+            Console.WriteLine(msbuild);
+        });
+
+        SubCommand["devenv_print"].SetAction(async parseResult =>
+        {
+            var devEnv = await MSBuild.GetDevEnv();
 
             foreach (var kv in devEnv)
             {
                 Console.WriteLine($"{kv.Key} = {kv.Value}");
             }
+        });
+
+        SubCommand["devenv_msbuild"].SetAction(async parseResult =>
+        {
+            var devEnv = await MSBuild.GetDevEnv();
 
             var msbuild = await MSBuild.GetCommandFromDevEnv("msbuild");
 
             Console.WriteLine(msbuild);
 
-            
+            var startInfo = new ProcessStartInfo(msbuild)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
 
-            // var devEnv = await MSBuild.GetDevEnv();
+            foreach (var kv in devEnv)
+                startInfo.Environment[kv.Key] = kv.Value;
 
-            // await MSBuild.SaveEnvToJson(devEnv);
+            using var process = Process.Start(startInfo)
+                  ?? throw new InvalidOperationException("Failed to start MSBuild.");
 
-            // foreach (var kv in devEnv)
-            // {
-            //     Console.WriteLine($"{kv.Key} = {kv.Value}");
-            // }
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
 
-            // var startInfo = new ProcessStartInfo("powershell")
-            // {
-            //     Arguments = $"-c msbuild",
-            //     UseShellExecute = false,
-            //     RedirectStandardOutput = true,
-            //     RedirectStandardError = true
-            // };
+            await process.WaitForExitAsync();
 
-            // MSBuild.ApplyEnvToProcess(startInfo, devEnv);
-
-            // using var process = Process.Start(startInfo)!;
-            // string output = await process.StandardOutput.ReadToEndAsync();
-            // await process.WaitForExitAsync();
-
-            // Console.WriteLine(output);
-
-            // using (PowerShell ps = PowerShell.Create())
-            // {
-            //     ps.AddScript("$PSVersionTable.PSVersion.ToString()");
-            //     var version = ps.Invoke()[0].ToString();
-            //     Console.WriteLine($"PowerShell version: {version}");
-
-            //     ps.AddScript("Get-Process | Select-Object -First 5");
-            //     var results = ps.Invoke();
-
-            //     foreach (var result in results)
-            //     {
-            //         Console.WriteLine(result);
-            //     }
-            // }
+            Console.WriteLine(await stdoutTask);
+            Console.Error.WriteLine(await stderrTask);
         });
-
-        // SubCommand["devenv"].SetAction(async parseResult =>
-        // {
-        //     return await MSBuild.RefreshDevEnv();
-        // });
-
-        // SubCommand["devenv_print"].SetAction(async parseResult =>
-        // {
-        //     if (!File.Exists(Project.SystemFolders.DevEnvJson))
-        //         await MSBuild.RefreshDevEnv();
-
-        //     var json = File.ReadAllText(Project.SystemFolders.DevEnvJson);
-        //     MSBuild.DevEnv = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-        //              ?? throw new InvalidOperationException("Failed to parse DevShell environment JSON.");
-
-        //     foreach (var kv in MSBuild.DevEnv!)
-        //     {
-        //         Console.WriteLine($"{kv.Key} = {kv.Value}");
-        //     }
-        // });
-
-        // SubCommand["devenv_msbuild"].SetAction(async parseResult =>
-        // {
-        //     await MSBuild.RefreshDevEnv();
-
-        //     var startInfo = new ProcessStartInfo("msbuild")
-        //     {
-        //         RedirectStandardOutput = true,
-        //         RedirectStandardError = true
-        //     };
-
-        //     foreach (var kv in MSBuild.DevEnv!)
-        //         startInfo.Environment[kv.Key] = kv.Value;
-
-        //     using var process = Process.Start(startInfo)
-        //           ?? throw new InvalidOperationException("Failed to start MSBuild.");
-
-        //     var stdoutTask = process.StandardOutput.ReadToEndAsync();
-        //     var stderrTask = process.StandardError.ReadToEndAsync();
-
-        //     await process.WaitForExitAsync();
-
-        //     Console.WriteLine(await stdoutTask);
-        //     Console.Error.WriteLine(await stderrTask);
-        // });
 
         SubCommand["msbuild"].SetAction(async parseResult =>
         {

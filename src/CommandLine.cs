@@ -47,9 +47,9 @@ public static class CommandLine
                 Console.WriteLine($"{kv.Key} = {kv.Value}");
             }
 
-            var startInfo = new ProcessStartInfo("cmd")
+            var startInfo = new ProcessStartInfo("powershell")
             {
-                Arguments = $"/c msbuild",
+                Arguments = $"-c msbuild",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true

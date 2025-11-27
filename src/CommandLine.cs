@@ -38,6 +38,9 @@ public static class CommandLine
 
         SubCommand["devenv"].SetAction(async parseResult =>
         {
+            if (File.Exists(Project.SystemFolders.DevEnvJson))
+                File.Delete(Project.SystemFolders.DevEnvJson);
+
             var devEnv = await MSBuild.DevEnvironmentProvider.Environment;
         });
 

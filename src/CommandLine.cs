@@ -38,7 +38,7 @@ public static class CommandLine
 
         SubCommand["devenv"].SetAction(async parseResult =>
         {
-            var devEnv = await MSBuild.DevEnvironmentProvider.Environment;
+            var devEnv = await MSBuild.DevEnv;
 
             foreach (var kv in devEnv)
             {

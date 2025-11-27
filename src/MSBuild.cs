@@ -17,6 +17,51 @@ public static class MSBuild
         Release
     }
 
+    public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;
+    private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
+        new(async () =>
+        {
+            var devPrompt = Find.DeveloperPrompt(Project.Tools.VSWhere);
+
+            var startInfo = new ProcessStartInfo("cmd.exe")
+            {
+                Arguments = $"/c call \"{devPrompt}\" -arch=amd64 -host_arch=amd64 && set",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+
+            using var process = Process.Start(startInfo)
+                ?? throw new Exception("Failed to start dev environment capture process");
+
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            if (!string.IsNullOrWhiteSpace(stderr))
+                Console.Error.WriteLine(stderr);
+
+            var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var line in stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
+            {
+                int eq = line.IndexOf('=');
+                if (eq <= 0)
+                    continue;
+
+                var key = line[..eq];
+                var value = line[(eq + 1)..];
+
+                env[key] = value;
+            }
+
+            return env;
+        });
+
     public static class DevEnvironmentTools
     {
         private static readonly string CacheFile = Path.Combine(Project.Paths.AppLocal, "DevToolsCache.json");
@@ -80,95 +125,9 @@ public static class MSBuild
         public static ValueTask<string> RC() => new(GetTool("rc.exe"));
     }
 
-    public static class DevEnvironmentProvider
-    {
-        private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
-            new(LoadOrCreateAsync);
-        public static Task<Dictionary<string, string>> Environment => _lazyEnv.Value;
-
-        private static async Task<Dictionary<string, string>> LoadOrCreateAsync()
-        {
-            // if (File.Exists(Project.SystemFolders.DevEnvJson))
-            // {
-            //     try
-            //     {
-            //         var json = await File.ReadAllTextAsync(Project.SystemFolders.DevEnvJson);
-            //         var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-
-            //         if (dict is not null)
-            //             return dict;
-            //     }
-            //     catch
-            //     {
-            //     }
-            // }
-
-            var fresh = await GetDevEnv();
-
-            // try
-            // {
-            //     var json = JsonSerializer.Serialize(fresh, new JsonSerializerOptions
-            //     {
-            //         WriteIndented = true
-            //     });
-
-            //     await File.WriteAllTextAsync(Project.SystemFolders.DevEnvJson, json);
-            // }
-            // catch
-            // {
-            // }
-
-            return fresh;
-        }
-    }
-
-    public static async Task<Dictionary<string, string>> GetDevEnv()
-    {
-        var devPrompt = Find.DeveloperPrompt(Project.Tools.VSWhere);
-
-        var startInfo = new ProcessStartInfo("cmd.exe")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        startInfo.Arguments = $"/c call \"{devPrompt}\" -arch=amd64 -host_arch=amd64 && set";
-
-        using var process = Process.Start(startInfo)!;
-
-        var stdoutTask = process.StandardOutput.ReadToEndAsync();
-        var stderrTask = process.StandardError.ReadToEndAsync();
-
-        await process.WaitForExitAsync();
-
-        var stdout = await stdoutTask;
-        var stderr = await stderrTask;
-
-        if (!string.IsNullOrEmpty(stderr))
-            Console.Error.WriteLine(stderr);
-
-        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var line in stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
-        {
-            var trimmed = line.Trim();
-            int eq = trimmed.IndexOf('=');
-
-            if (eq <= 0)
-                continue;
-
-            string key = trimmed[..eq];
-            string value = trimmed[(eq + 1)..];
-
-            env[key] = value;
-        }
-
-        return env;
-    }
-
     public static async Task<string> GetCommandFromDevEnv(string command)
     {
-        var devEnv = await DevEnvironmentProvider.Environment;
+        var devEnv = await DevEnv;
 
         if (!devEnv.TryGetValue("PATH", out var pathValue) &&
             !devEnv.TryGetValue("Path", out pathValue))

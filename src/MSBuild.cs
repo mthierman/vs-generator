@@ -15,6 +15,15 @@ public static class MSBuild
         Release
     }
 
+    public static class DevEnvironmentTools
+    {
+        public static Task<string> MSBuild => GetCommandFromDevEnv("MSBuild.exe");
+        public static Task<string> Lib => GetCommandFromDevEnv("lib.exe");
+        public static Task<string> Link => GetCommandFromDevEnv("link.exe");
+        public static Task<string> RC => GetCommandFromDevEnv("rc.exe");
+    }
+
+
     public static class DevEnvironmentProvider
     {
         private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =

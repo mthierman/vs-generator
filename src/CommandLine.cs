@@ -48,9 +48,10 @@ public static class CommandLine
             // File.WriteAllText(Project.SystemFolders.DevEnvJson, json);
             // Console.WriteLine($"Saved {Project.SystemFolders.DevEnvJson}");
 
-            var msbuild = await MSBuild.GetCommandFromDevEnv("msbuild");
+            // var msbuild = await MSBuild.GetCommandFromDevEnv("msbuild");
+            // Console.WriteLine(msbuild);
 
-            Console.WriteLine(msbuild);
+            Console.WriteLine(await MSBuild.DevEnvironmentTools.MSBuild);
         });
 
         SubCommand["devenv_print"].SetAction(async parseResult =>

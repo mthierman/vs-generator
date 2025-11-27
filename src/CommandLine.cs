@@ -53,25 +53,7 @@ public static class CommandLine
 
         SubCommand["devenv_msbuild"].SetAction(async parseResult =>
         {
-            await ExternalCommand.Run(await MSBuild.DevEnvironmentTools.MSBuild(), ["-version"]);
-            // var startInfo = new ProcessStartInfo(await MSBuild.DevEnvironmentTools.MSBuild())
-            // {
-            //     UseShellExecute = false,
-            //     Arguments = "-version",
-            //     RedirectStandardOutput = true,
-            //     RedirectStandardError = true
-            // };
-
-            // using var process = Process.Start(startInfo)
-            //       ?? throw new InvalidOperationException("Failed to start MSBuild.");
-
-            // var stdoutTask = process.StandardOutput.ReadToEndAsync();
-            // var stderrTask = process.StandardError.ReadToEndAsync();
-
-            // await process.WaitForExitAsync();
-
-            // Console.Write((await stdoutTask).TrimEnd());
-            // Console.Error.Write((await stderrTask).TrimEnd());
+            return await ExternalCommand.Run(await MSBuild.DevEnvironmentTools.MSBuild(), "-version");
         });
 
         SubCommand["msbuild"].SetAction(async parseResult =>

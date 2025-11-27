@@ -45,7 +45,10 @@ public static class CommandLine
                 Console.WriteLine($"{kv.Key} = {kv.Value}");
             }
 
-            return await ExternalCommand.Run(await MSBuild.DevEnvironmentTools.MSBuild(), "-version");
+            Console.WriteLine();
+
+            await ExternalCommand.Run(await MSBuild.DevEnvironmentTools.MSBuild(), "-version");
+            return await ExternalCommand.Run(await MSBuild.DevEnvironmentTools.RC(), "-version");
         });
 
         SubCommand["msbuild"].SetAction(async parseResult =>

@@ -163,6 +163,19 @@ public static class MSBuild
         return lines[0];
     }
 
+    public static async Task<string> GetWindowsSdkExecutablePath()
+    {
+        var devEnv = await DevEnv;
+
+        if (!devEnv.TryGetValue("WindowsSDK_ExecutablePath_x64", out var sdkPath))
+            throw new KeyNotFoundException("WindowsSDK_ExecutablePath_x64 not found in developer environment.");
+
+        if (!Directory.Exists(sdkPath))
+            throw new DirectoryNotFoundException($"Windows SDK path does not exist: {sdkPath}");
+
+        return sdkPath;
+    }
+
     private static async Task SaveEnvToJson(Dictionary<string, string> env)
     {
         var options = new JsonSerializerOptions

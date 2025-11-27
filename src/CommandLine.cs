@@ -39,6 +39,7 @@ public static class CommandLine
         SubCommand["devenv"].SetAction(async parseResult =>
         {
             var devEnv = await MSBuild.DevEnvironmentProvider.Environment;
+            await MSBuild.DevEnvironmentTools.Initialize();
 
             // var json = JsonSerializer.Serialize(devEnv, new JsonSerializerOptions
             // {
@@ -51,7 +52,7 @@ public static class CommandLine
             // var msbuild = await MSBuild.GetCommandFromDevEnv("msbuild");
             // Console.WriteLine(msbuild);
 
-            Console.WriteLine(await MSBuild.DevEnvironmentTools.MSBuild());
+            Console.WriteLine(MSBuild.DevEnvironmentTools.MSBuild());
         });
 
         SubCommand["devenv_print"].SetAction(async parseResult =>

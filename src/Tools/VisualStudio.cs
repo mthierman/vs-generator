@@ -11,8 +11,18 @@ public static class VisualStudio
     public static string? InstallPath => Latest?.GetInstallationPath();
 
     /// <summary>The MSBuild path of the latest Visual Studio instance (64-bit).</summary>
+    public static string? VSWherePath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+        "Microsoft Visual Studio", "Installer", "vswhere.exe");
+
+    /// <summary>The MSBuild path of the latest Visual Studio instance (64-bit).</summary>
     public static string? MSBuildPath => InstallPath is string path
         ? Path.Combine(path, "MSBuild", "Current", "Bin", "amd64", "MSBuild.exe")
+        : null;
+
+    /// <summary>The vcpkg path of the latest Visual Studio instance (64-bit).</summary>
+    public static string? VcpkgPath => InstallPath is string path
+        ? Path.Combine(path, "VC", "vcpkg", "vcpkg.exe")
         : null;
 
     /// <summary>The path to cl.exe compiler of the latest Visual Studio instance (x64).</summary>

@@ -2,14 +2,19 @@ namespace cxx;
 
 public static class Project
 {
-    public static string ManifestFile = "cxx.jsonc";
-
-    public static class SystemFolders
+    public static class Paths
     {
+
         public static readonly string Local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         public static readonly string Roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         public static readonly string AppLocal = Path.Combine(Local, "cxx");
         public static readonly string AppRoaming = Path.Combine(Roaming, "cxx");
+
+        public static class Manifest
+        {
+            public static string FileName = "cxx.jsonc";
+            public static string FullPath = Path.Combine(AppLocal, "cxx.jsonc");
+        }
     }
 
     private static readonly Lazy<CorePaths> _corePaths = new Lazy<CorePaths>(InitCorePaths);
@@ -38,18 +43,18 @@ public static class Project
 
         while (!string.IsNullOrEmpty(cwd))
         {
-            if (File.Exists(Path.Combine(cwd, ManifestFile)))
+            if (File.Exists(Path.Combine(cwd, Paths.Manifest.FileName)))
                 root = cwd;
 
             cwd = Directory.GetParent(cwd)?.FullName;
         }
 
         if (string.IsNullOrEmpty(root))
-            throw new FileNotFoundException($"No {ManifestFile}");
+            throw new FileNotFoundException($"No {Paths.Manifest.FileName}");
 
         return new(
             ProjectRoot: root,
-            Manifest: Path.Combine(root, ManifestFile),
+            Manifest: Path.Combine(root, Paths.Manifest.FileName),
             Src: Path.Combine(root, "src"),
             Build: Path.Combine(root, "build"),
             SolutionFile: Path.Combine(root, "build", "app.slnx"),
@@ -96,7 +101,7 @@ public static class Project
             return 1;
         }
 
-        await File.WriteAllTextAsync(Path.Combine(cwd, ManifestFile), "{}");
+        await File.WriteAllTextAsync(Path.Combine(cwd, Paths.Manifest.FileName), "{}");
 
         ExternalCommand.RunVcpkg("new", "--application");
 

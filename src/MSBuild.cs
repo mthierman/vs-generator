@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Management.Automation;
 using System.Text.Json;
@@ -18,22 +19,24 @@ public static class MSBuild
 
     public static class DevEnvironmentTools
     {
-        private static readonly Lazy<Task<Dictionary<string, string>>> _tools = new(async () =>
+        private static readonly Lazy<Task<ImmutableDictionary<string, string>>> _tools = new(async () =>
         {
             var toolNames = new[] { "MSBuild.exe", "lib.exe", "link.exe", "rc.exe" };
-            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var builder = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            var tasks = toolNames.Select(async tool =>
+            await Parallel.ForEachAsync(toolNames, async (tool, _) =>
             {
-                dict[tool] = await GetCommandFromDevEnv(tool);
+                var path = await GetCommandFromDevEnv(tool);
+                lock (builder) // ImmutableDictionary.Builder is not thread-safe
+                {
+                    builder[tool] = path;
+                }
             });
 
-            await Task.WhenAll(tasks);
-
-            return dict;
+            return builder.ToImmutable();
         });
 
-        private static Task<Dictionary<string, string>> Tools => _tools.Value;
+        private static Task<ImmutableDictionary<string, string>> Tools => _tools.Value;
 
         public static async Task<string> MSBuild() => (await Tools)["MSBuild.exe"];
         public static async Task<string> Lib() => (await Tools)["lib.exe"];

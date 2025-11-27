@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Management.Automation;
@@ -15,6 +15,28 @@ public static class MSBuild
     {
         Debug,
         Release
+    }
+
+    public static async Task<int> Run(params string[]? arguments)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = Project.Tools.MSBuild,
+            UseShellExecute = false,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
+            CreateNoWindow = false
+        };
+
+        foreach (var argument in arguments ?? Array.Empty<string>())
+            startInfo.ArgumentList.Add(argument);
+
+        using var process = Process.Start(startInfo)
+                      ?? throw new InvalidOperationException("Failed to start process.");
+
+        await process.WaitForExitAsync();
+
+        return process.ExitCode;
     }
 
     public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;

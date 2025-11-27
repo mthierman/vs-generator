@@ -56,9 +56,7 @@ public static class CommandLine
 
         SubCommand["msbuild"].SetAction(async parseResult =>
         {
-            var args = parseResult.GetValue(MSBuildArguments) ?? Array.Empty<string>();
-
-            return await ExternalCommand.Run(Project.Tools.MSBuild, args);
+            return await MSBuild.Run(parseResult.GetValue(VcpkgArguments));
         });
 
         SubCommand["ninja"].SetAction(async parseResult =>
@@ -70,9 +68,7 @@ public static class CommandLine
 
         SubCommand["vcpkg"].SetAction(async parseResult =>
         {
-            var args = parseResult.GetValue(VcpkgArguments) ?? Array.Empty<string>();
-
-            return await ExternalCommand.Run(Project.Tools.Vcpkg, args);
+            return await Vcpkg.Run(parseResult.GetValue(VcpkgArguments));
         });
 
         SubCommand["new"].SetAction(async parseResult =>

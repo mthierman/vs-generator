@@ -15,9 +15,7 @@ public static class CommandLine
     private static Argument<string[]> VcpkgArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
     private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
     {
-        // ["devenv"] = new Command("devenv", "Refresh developer environment"),
-        // ["devenv_print"] = new Command("devenv_print", "Print developer environment"),
-        // ["devenv_msbuild"] = new Command("devenv_msbuild", "Run MSBuild from developer environment"),
+        ["devenv"] = new Command("devenv", "Refresh developer environment"),
         ["msbuild"] = new Command("msbuild") { MSBuildArguments },
         ["ninja"] = new Command("ninja") { NinjaBuildArguments },
         ["vcpkg"] = new Command("vcpkg") { VcpkgArguments },
@@ -38,27 +36,18 @@ public static class CommandLine
             RootCommand.Subcommands.Add(command);
         }
 
-        // SubCommand["devenv"].SetAction(async parseResult =>
-        // {
-        //     if (File.Exists(Project.SystemFolders.DevEnvJson))
-        //         File.Delete(Project.SystemFolders.DevEnvJson);
-        //     var devEnv = await MSBuild.DevEnvironmentProvider.Environment;
-        // });
+        SubCommand["devenv"].SetAction(async parseResult =>
+        {
+            var devEnv = await MSBuild.DevEnvironmentProvider.Environment;
 
-        // SubCommand["devenv_print"].SetAction(async parseResult =>
-        // {
-        //     var devEnv = await MSBuild.DevEnvironmentProvider.Environment;
+            foreach (var kv in devEnv)
+            {
+                Console.WriteLine($"{kv.Key} = {kv.Value}");
+            }
 
-        //     foreach (var kv in devEnv)
-        //     {
-        //         Console.WriteLine($"{kv.Key} = {kv.Value}");
-        //     }
-        // });
-
-        // SubCommand["devenv_msbuild"].SetAction(async parseResult =>
-        // {
-        //     return await ExternalCommand.Run(await MSBuild.DevEnvironmentTools.MSBuild(), "-version");
-        // });
+            Console.WriteLine("Testing MSBuild.exe --version...");
+            return await ExternalCommand.Run(await MSBuild.DevEnvironmentTools.MSBuild(), "-version");
+        });
 
         SubCommand["msbuild"].SetAction(async parseResult =>
         {

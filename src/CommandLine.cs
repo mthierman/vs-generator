@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace cxx;
 
@@ -38,6 +39,14 @@ public static class CommandLine
         SubCommand["devenv"].SetAction(async parseResult =>
         {
             var devEnv = await MSBuild.GetDevEnv();
+
+            var json = JsonSerializer.Serialize(devEnv, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            File.WriteAllText(Project.SystemFolders.DevEnvJson, json);
+            Console.WriteLine($"Saved {Project.SystemFolders.DevEnvJson}");
 
             var msbuild = await MSBuild.GetCommandFromDevEnv("msbuild");
 

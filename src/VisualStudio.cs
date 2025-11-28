@@ -17,6 +17,66 @@ public static class VisualStudio
         Release
     }
 
+    private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
+
+    public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;
+    private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
+        new(async () =>
+        {
+            if (!File.Exists(VSWherePath))
+                throw new FileNotFoundException($"vswhere.exe not found at {VSWherePath}");
+
+            string installPath;
+            using (var process = Process.Start(new ProcessStartInfo(VSWherePath,
+                        "-latest -products * -property installationPath")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            }) ?? throw new InvalidOperationException("vswhere.exe failed to start"))
+            {
+                installPath = (await process.StandardOutput.ReadToEndAsync())
+                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .FirstOrDefault()?
+                    .Trim() ?? throw new Exception("Failed to detect Visual Studio installation path");
+
+                await process.WaitForExitAsync();
+            }
+
+            var vsDevCmd = Path.Combine(installPath, "Common7", "Tools", "VsDevCmd.bat");
+
+            if (!File.Exists(vsDevCmd))
+                throw new FileNotFoundException("VsDevCmd.bat not found", vsDevCmd);
+
+            var startInfo = new ProcessStartInfo("cmd.exe")
+            {
+                Arguments = $"/c call \"{vsDevCmd}\" -arch=amd64 -host_arch=amd64 && set",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+
+            using var devCmdProcess = Process.Start(startInfo)
+                ?? throw new Exception("Failed to start dev environment capture process");
+
+            var stdoutTask = devCmdProcess.StandardOutput.ReadToEndAsync();
+            var stderrTask = devCmdProcess.StandardError.ReadToEndAsync();
+
+            await devCmdProcess.WaitForExitAsync();
+
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            if (!string.IsNullOrWhiteSpace(stderr))
+                Console.Error.WriteLine(stderr);
+
+            var env = stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(line => line.Split('=', 2))
+                            .Where(parts => parts.Length == 2)
+                            .ToDictionary(parts => parts[0], parts => parts[1], StringComparer.OrdinalIgnoreCase);
+
+            return env;
+        });
+
     private static readonly Lazy<ISetupInstance?> _latestInstance = new(() =>
       {
           var setupConfiguration = new SetupConfiguration();
@@ -428,66 +488,6 @@ public static class VisualStudio
             Console.ResetColor();
         }
     }
-
-    private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
-
-    public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;
-    private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
-        new(async () =>
-        {
-            if (!File.Exists(VSWherePath))
-                throw new FileNotFoundException($"vswhere.exe not found at {VSWherePath}");
-
-            string installPath;
-            using (var process = Process.Start(new ProcessStartInfo(VSWherePath,
-                        "-latest -products * -property installationPath")
-            {
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-            }) ?? throw new InvalidOperationException("vswhere.exe failed to start"))
-            {
-                installPath = (await process.StandardOutput.ReadToEndAsync())
-                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .FirstOrDefault()?
-                    .Trim() ?? throw new Exception("Failed to detect Visual Studio installation path");
-
-                await process.WaitForExitAsync();
-            }
-
-            var vsDevCmd = Path.Combine(installPath, "Common7", "Tools", "VsDevCmd.bat");
-
-            if (!File.Exists(vsDevCmd))
-                throw new FileNotFoundException("VsDevCmd.bat not found", vsDevCmd);
-
-            var startInfo = new ProcessStartInfo("cmd.exe")
-            {
-                Arguments = $"/c call \"{vsDevCmd}\" -arch=amd64 -host_arch=amd64 && set",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-
-            using var devCmdProcess = Process.Start(startInfo)
-                ?? throw new Exception("Failed to start dev environment capture process");
-
-            var stdoutTask = devCmdProcess.StandardOutput.ReadToEndAsync();
-            var stderrTask = devCmdProcess.StandardError.ReadToEndAsync();
-
-            await devCmdProcess.WaitForExitAsync();
-
-            var stdout = await stdoutTask;
-            var stderr = await stderrTask;
-
-            if (!string.IsNullOrWhiteSpace(stderr))
-                Console.Error.WriteLine(stderr);
-
-            var env = stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(line => line.Split('=', 2))
-                            .Where(parts => parts.Length == 2)
-                            .ToDictionary(parts => parts[0], parts => parts[1], StringComparer.OrdinalIgnoreCase);
-
-            return env;
-        });
 
     // public static class DevEnvironmentTools
     // {

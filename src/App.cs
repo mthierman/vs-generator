@@ -72,9 +72,7 @@ public static class App
                 Console.Error.WriteLine($"Directory is not empty");
                 Console.ResetColor();
                 Console.Error.WriteLine();
-
-                var help = RootCommand.Parse("--help");
-                await help.InvokeAsync();
+                await RootCommand.Parse("--help").InvokeAsync();
 
                 return 1;
             }
@@ -192,9 +190,7 @@ public static class App
 
     public static async Task<int> PrintHelp()
     {
-        var processInfo = Exe.CXX;
-        processInfo.ArgumentList.Add("--help");
-        return await Run(processInfo);
+        return await RootCommand.Parse("--help").InvokeAsync();
     }
 
     public static int Start(string[] args)

@@ -18,58 +18,47 @@ public static class VisualStudio
     }
 
     private static readonly SetupConfiguration setupConfiguration = new SetupConfiguration();
-    private static readonly Lazy<ISetupInstance?> _latest = new(GetLatestInstance);
 
-    /// <summary>The latest installed Visual Studio instance (any edition, including Build Tools).</summary>
+    private static readonly Lazy<ISetupInstance?> _latest = new(GetLatestInstance);
     public static ISetupInstance? Latest => _latest.Value;
 
-    /// <summary>The installation path of the latest Visual Studio instance, or null if none installed.</summary>
     public static string? InstallPath => Latest?.GetInstallationPath();
 
-    /// <summary>The vswhere path of the latest Visual Studio instance (64-bit).</summary>
     public static string VSWherePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
         "Microsoft Visual Studio", "Installer", "vswhere.exe");
 
-    /// <summary>The MSBuild path of the latest Visual Studio instance (64-bit).</summary>
     public static string? MSBuildPath => InstallPath is string path
         ? Path.Combine(path, "MSBuild", "Current", "Bin", "amd64", "MSBuild.exe")
         : null;
-
-    /// <summary>The ninja path of the latest Visual Studio instance (64-bit).</summary>
-    public static string? NinjaPath => InstallPath is string path
-        ? Path.Combine(path, "Common7", "IDE", "CommonExtensions", "Microsoft", "CMake", "Ninja", "ninja.exe")
+    public static string? ClPath => LatestMSVCVersionPath() is string path
+        ? Path.Combine(path, "bin", "Hostx64", "x64", "cl.exe")
         : null;
-
-    /// <summary>The vcpkg path of the latest Visual Studio instance (64-bit).</summary>
     public static string? VcpkgPath => InstallPath is string path
         ? Path.Combine(path, "VC", "vcpkg", "vcpkg.exe")
         : null;
-
-    /// <summary>The path to cl.exe compiler of the latest Visual Studio instance (x64).</summary>
+    public static string? NinjaPath => InstallPath is string path
+        ? Path.Combine(path, "Common7", "IDE", "CommonExtensions", "Microsoft", "CMake", "Ninja", "ninja.exe")
+        : null;
     public static string? ClangFormatPath => InstallPath is string path
         ? Path.Combine(path, "VC", "Tools", "Llvm", "x64", "bin", "clang-format.exe")
         : null;
 
-    /// <summary>The path to cl.exe compiler of the latest Visual Studio instance (x64).</summary>
-    public static string? ClPath => LatestMSVCVersionPath() is string path
-        ? Path.Combine(path, "bin", "Hostx64", "x64", "cl.exe")
-        : null;
-
-    /// <summary>Finds the latest MSVC version folder inside VC\Tools\MSVC.</summary>
     private static string? LatestMSVCVersionPath()
     {
-        if (InstallPath is null) return null;
+        if (InstallPath is null)
+            return null;
 
         var vcRoot = Path.Combine(InstallPath, "VC", "Tools", "MSVC");
-        if (!Directory.Exists(vcRoot)) return null;
+
+        if (!Directory.Exists(vcRoot))
+            return null;
 
         return Directory.GetDirectories(vcRoot)
             .OrderByDescending(Path.GetFileName)
             .FirstOrDefault();
     }
 
-    /// <summary>Finds the latest installed Visual Studio instance.</summary>
     private static ISetupInstance? GetLatestInstance()
     {
         var enumInstances = setupConfiguration.EnumAllInstances();

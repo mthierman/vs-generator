@@ -8,7 +8,7 @@ public static class Ninja
     {
         var startInfo = new ProcessStartInfo
         {
-            FileName = "ninja.exe",
+            FileName = VisualStudio.NinjaPath,
             UseShellExecute = false,
             RedirectStandardOutput = false,
             RedirectStandardError = false,

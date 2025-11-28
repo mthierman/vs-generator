@@ -17,7 +17,7 @@ public static class App
 
     private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
     private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {Version}");
-    private static Argument<MSBuild.BuildConfiguration> BuildConfiguration = new("BuildConfiguration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
+    private static Argument<VisualStudio.BuildConfiguration> BuildConfiguration = new("BuildConfiguration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
 
     private static Argument<string[]> VSWhereArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
     private static Argument<string[]> MSBuildArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
@@ -60,7 +60,7 @@ public static class App
 
         SubCommand["devenv"].SetAction(async parseResult =>
         {
-            var devEnv = await MSBuild.DevEnv;
+            var devEnv = await VisualStudio.DevEnv;
 
             foreach (var kv in devEnv)
             {
@@ -69,7 +69,7 @@ public static class App
 
             Console.WriteLine();
 
-            var sdk = await MSBuild.GetWindowsSdkExecutablePath();
+            var sdk = await VisualStudio.GetWindowsSdkExecutablePath();
             Console.WriteLine(sdk);
         });
 
@@ -125,19 +125,19 @@ public static class App
 
         SubCommand["generate"].SetAction(async parseResult =>
         {
-            return await MSBuild.Generate();
+            return await VisualStudio.Generate();
         });
 
         SubCommand["build"].SetAction(async parseResult =>
         {
-            return await MSBuild.Build(parseResult.GetValue(BuildConfiguration));
+            return await VisualStudio.Build(parseResult.GetValue(BuildConfiguration));
         });
 
         SubCommand["run"].SetAction(async parseResult =>
         {
-            await MSBuild.Build(parseResult.GetValue(BuildConfiguration));
+            await VisualStudio.Build(parseResult.GetValue(BuildConfiguration));
 
-            Process.Start(new ProcessStartInfo(Path.Combine(Project.Core.Build, parseResult.GetValue(BuildConfiguration) == MSBuild.BuildConfiguration.Debug ? "debug" : "release", "app.exe")))?.WaitForExit();
+            Process.Start(new ProcessStartInfo(Path.Combine(Project.Core.Build, parseResult.GetValue(BuildConfiguration) == VisualStudio.BuildConfiguration.Debug ? "debug" : "release", "app.exe")))?.WaitForExit();
 
             return 0;
         });
@@ -149,7 +149,7 @@ public static class App
 
         SubCommand["clean"].SetAction(async parseResult =>
         {
-            return MSBuild.Clean();
+            return VisualStudio.Clean();
         });
 
         SubCommand["format"].SetAction(async parseResult =>

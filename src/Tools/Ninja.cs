@@ -15,6 +15,6 @@ public static class Ninja
             CreateNoWindow = false
         };
 
-        return await ExternalCommand.Run(startInfo, args);
+        return await ExternalCommand.Run(startInfo, args!);
     }
 }

@@ -303,10 +303,8 @@ public static class App
     public static class Paths
     {
         public static readonly string ManifestFileName = "cxx.jsonc";
-        public static readonly string Local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        public static readonly string Roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        public static readonly string AppLocal = Path.Combine(Local, "cxx");
-        public static readonly string AppRoaming = Path.Combine(Roaming, "cxx");
+        public static readonly string AppLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "cxx");
+        public static readonly string AppRoaming = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "cxx");
 
         public static ProjectPaths Project => _project.Value;
         private static readonly Lazy<ProjectPaths> _project = new(() =>

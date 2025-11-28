@@ -72,7 +72,7 @@ public static class App
         {
             var vswhere = Path.Combine(
                             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                            @"Microsoft Visual Studio\Installer\vswhere.exe");
+                            "Microsoft Visual Studio", "Installer", "vswhere.exe");
 
             return new(
                 VSWhere: vswhere,

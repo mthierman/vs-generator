@@ -125,21 +125,25 @@ public static class VisualStudio
 
     public static async Task<int> Build(BuildConfiguration config)
     {
+        var isDebug = config == BuildConfiguration.Debug;
         Directory.CreateDirectory(App.Paths.Project.Build);
 
         if (await Generate() != 0)
-            return 1;
+            throw new InvalidOperationException("Generation failed");
 
         if (string.IsNullOrWhiteSpace(MSBuildPath))
-            throw new InvalidOperationException("MSBuild path not set.");
+            throw new InvalidOperationException("MSBuild.exe not found");
 
-        var args = $"-nologo -v:minimal /p:Configuration={(config == BuildConfiguration.Debug ? "Debug" : "Release")} /p:Platform=x64";
-        var process = Process.Start(new ProcessStartInfo(MSBuildPath, args) { WorkingDirectory = App.Paths.Project.Build }) ?? throw new InvalidOperationException("Failed to start MSBuild");
-        process.WaitForExit();
-
+        var exe = App.Exe.MSBuild;
+        exe.ArgumentList.Add("-nologo");
+        exe.ArgumentList.Add("-v:minimal");
+        exe.ArgumentList.Add($"/p:Configuration={(isDebug ? "Debug" : "Release")}");
+        exe.ArgumentList.Add("/p:Platform=x64");
+        exe.WorkingDirectory = App.Paths.Project.Build;
+        var exitCode = await App.Run(exe); ;
         Console.Error.WriteLine();
 
-        return 0;
+        return exitCode;
     }
 
     public static int Clean()

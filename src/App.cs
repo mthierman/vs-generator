@@ -15,7 +15,7 @@ public static class App
 
     public static class Exe
     {
-        public static ProcessStartInfo CXX => new() { FileName = FileName };
+        public static ProcessStartInfo CXX => new() { FileName = Environment.ProcessPath };
         public static ProcessStartInfo VSWhere => new() { FileName = VisualStudio.VSWherePath };
         public static ProcessStartInfo MSBuild => new() { FileName = VisualStudio.MSBuildPath };
         public static ProcessStartInfo CL => new() { FileName = VisualStudio.ClPath };
@@ -73,7 +73,8 @@ public static class App
                 Console.ResetColor();
                 Console.Error.WriteLine();
 
-                await PrintHelp();
+                var help = RootCommand.Parse("--help");
+                await help.InvokeAsync();
 
                 return 1;
             }

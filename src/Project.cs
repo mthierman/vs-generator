@@ -103,7 +103,7 @@ public static class Project
 
         await File.WriteAllTextAsync(Path.Combine(cwd, Paths.Manifest.FileName), "{}");
 
-        await ExternalCommand.RunVcpkg("new", "--application");
+        await VisualStudio.RunVcpkg("new", "--application");
 
         if (!Directory.Exists(Core.Src))
             Directory.CreateDirectory(Core.Src);

@@ -15,6 +15,6 @@ public static class Vcpkg
             CreateNoWindow = false
         };
 
-        return await ExternalCommand.Run(startInfo, args!);
+        return await App.Run(startInfo, args!);
     }
 }

@@ -79,42 +79,6 @@ public static class App
         return process.ExitCode;
     }
 
-    public static async Task<int> New()
-    {
-        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any())
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine("Directory is not empty");
-            Console.ResetColor();
-
-            return 1;
-        }
-
-        await File.WriteAllTextAsync(Path.Combine(Environment.CurrentDirectory, ManifestFileName), "{}");
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = VisualStudio.VcpkgPath
-        };
-
-        startInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-        startInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-
-        await Run(startInfo, "new", "--application");
-
-        await File.WriteAllTextAsync(Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"), @"
-            #include <print>
-
-            auto wmain() -> int {
-                std::println(""Hello, World!"");
-
-                return 0;
-            }
-        ".Trim());
-
-        return 0;
-    }
-
     // private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
     private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {Version}");
     private static Argument<VisualStudio.BuildConfiguration> BuildConfiguration = new("BuildConfiguration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
@@ -126,7 +90,7 @@ public static class App
 
     private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
     {
-        ["vs"] = new Command("vs", "Visual Studio"),
+        // ["vs"] = new Command("vs", "Visual Studio"),
         ["devenv"] = new Command("devenv", "Refresh developer environment"),
         ["vswhere"] = new Command("vswhere") { VSWhereArguments },
         ["msbuild"] = new Command("msbuild") { MSBuildArguments },
@@ -149,14 +113,14 @@ public static class App
             RootCommand.Subcommands.Add(command);
         }
 
-        SubCommand["vs"].SetAction(async parseResult =>
-        {
-            Console.WriteLine(VisualStudio.InstallPath);
-            Console.WriteLine(VisualStudio.VSWherePath);
-            Console.WriteLine(VisualStudio.MSBuildPath);
-            Console.WriteLine(VisualStudio.ClPath);
-            Console.WriteLine(VisualStudio.VcpkgPath);
-        });
+        // SubCommand["vs"].SetAction(async parseResult =>
+        // {
+        //     Console.WriteLine(VisualStudio.InstallPath);
+        //     Console.WriteLine(VisualStudio.VSWherePath);
+        //     Console.WriteLine(VisualStudio.MSBuildPath);
+        //     Console.WriteLine(VisualStudio.ClPath);
+        //     Console.WriteLine(VisualStudio.VcpkgPath);
+        // });
 
         SubCommand["devenv"].SetAction(async parseResult =>
         {
@@ -167,10 +131,10 @@ public static class App
                 Console.WriteLine($"{kv.Key} = {kv.Value}");
             }
 
-            Console.WriteLine();
+            // Console.WriteLine();
 
-            var sdk = await VisualStudio.GetWindowsSdkExecutablePath();
-            Console.WriteLine(sdk);
+            // var sdk = await VisualStudio.GetWindowsSdkExecutablePath();
+            // Console.WriteLine(sdk);
         });
 
         SubCommand["vswhere"].SetAction(async parseResult =>
@@ -255,6 +219,42 @@ public static class App
 
             return 0;
         });
+    }
+
+    public static async Task<int> New()
+    {
+        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any())
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine("Directory is not empty");
+            Console.ResetColor();
+
+            return 1;
+        }
+
+        await File.WriteAllTextAsync(Path.Combine(Environment.CurrentDirectory, ManifestFileName), "{}");
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = VisualStudio.VcpkgPath
+        };
+
+        startInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+        startInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+
+        await Run(startInfo, "new", "--application");
+
+        await File.WriteAllTextAsync(Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"), @"
+            #include <print>
+
+            auto wmain() -> int {
+                std::println(""Hello, World!"");
+
+                return 0;
+            }
+        ".Trim());
+
+        return 0;
     }
 
     public static class Find

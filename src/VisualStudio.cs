@@ -532,7 +532,7 @@ public static class VisualStudio
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = VisualStudio.ClangFormatPath,
+                FileName = "clang-format.exe",
                 Arguments = $"-i \"{file}\"",
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,

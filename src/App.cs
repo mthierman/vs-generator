@@ -10,83 +10,12 @@ public static class App
               .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
               .InformationalVersion ?? "0.0.0";
 
-    public static class Paths
-    {
-        public static readonly string ManifestFileName = "cxx.jsonc";
-        public static readonly string Local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        public static readonly string Roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        public static readonly string AppLocal = Path.Combine(Local, "cxx");
-        public static readonly string AppRoaming = Path.Combine(Roaming, "cxx");
-
-        public static ProjectPaths Project => _project.Value;
-        private static readonly Lazy<ProjectPaths> _project = new(() =>
-        {
-            var cwd = Environment.CurrentDirectory;
-            var root = string.Empty;
-
-            while (!string.IsNullOrEmpty(cwd))
-            {
-                if (File.Exists(Path.Combine(cwd, ManifestFileName)))
-                    root = cwd;
-
-                cwd = Directory.GetParent(cwd)?.FullName;
-            }
-
-            if (string.IsNullOrEmpty(root))
-                throw new FileNotFoundException($"Manifest not found: {ManifestFileName}");
-
-            return new(
-                Root: root,
-                Manifest: Path.Combine(root, ManifestFileName),
-                Src: Path.Combine(root, "src"),
-                Build: Path.Combine(root, "build"),
-                SolutionFile: Path.Combine(root, "build", "app.slnx"),
-                ProjectFile: Path.Combine(root, "build", "app.vcxproj"));
-        });
-
-        public sealed record ProjectPaths(
-            string Root,
-            string Manifest,
-            string Src,
-            string Build,
-            string SolutionFile,
-            string ProjectFile);
-    }
-
-    public static int Start(string[] args)
-    {
-        return RootCommand.Parse(args).Invoke();
-    }
-
-    public static async Task<int> Run(ProcessStartInfo processStartInfo, params string[]? arguments)
-    {
-        if (processStartInfo.FileName is null || !File.Exists(processStartInfo.FileName))
-            return 1;
-
-        processStartInfo.UseShellExecute = false;
-        processStartInfo.RedirectStandardOutput = false;
-        processStartInfo.RedirectStandardError = false;
-        processStartInfo.CreateNoWindow = false;
-
-        foreach (var argument in arguments ?? Array.Empty<string>())
-            processStartInfo.ArgumentList.Add(argument);
-
-        using var process = Process.Start(processStartInfo)
-                      ?? throw new InvalidOperationException($"Failed to start process: {processStartInfo.FileName}.");
-
-        await process.WaitForExitAsync();
-
-        return process.ExitCode;
-    }
-
     private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {Version}");
     private static Argument<VisualStudio.BuildConfiguration> BuildConfiguration = new("BuildConfiguration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
-
     private static Argument<string[]> VSWhereArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
     private static Argument<string[]> MSBuildArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
     private static Argument<string[]> NinjaArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
     private static Argument<string[]> VcpkgArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
-
     private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
     {
         ["devenv"] = new Command("devenv", "Refresh developer environment"),
@@ -234,5 +163,74 @@ public static class App
 
             return 0;
         });
+    }
+
+    public static int Start(string[] args)
+    {
+        return RootCommand.Parse(args).Invoke();
+    }
+
+    public static async Task<int> Run(ProcessStartInfo processStartInfo, params string[]? arguments)
+    {
+        if (processStartInfo.FileName is null || !File.Exists(processStartInfo.FileName))
+            return 1;
+
+        processStartInfo.UseShellExecute = false;
+        processStartInfo.RedirectStandardOutput = false;
+        processStartInfo.RedirectStandardError = false;
+        processStartInfo.CreateNoWindow = false;
+
+        foreach (var argument in arguments ?? Array.Empty<string>())
+            processStartInfo.ArgumentList.Add(argument);
+
+        using var process = Process.Start(processStartInfo)
+                      ?? throw new InvalidOperationException($"Failed to start process: {processStartInfo.FileName}.");
+
+        await process.WaitForExitAsync();
+
+        return process.ExitCode;
+    }
+
+    public static class Paths
+    {
+        public static readonly string ManifestFileName = "cxx.jsonc";
+        public static readonly string Local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        public static readonly string Roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        public static readonly string AppLocal = Path.Combine(Local, "cxx");
+        public static readonly string AppRoaming = Path.Combine(Roaming, "cxx");
+
+        public static ProjectPaths Project => _project.Value;
+        private static readonly Lazy<ProjectPaths> _project = new(() =>
+        {
+            var cwd = Environment.CurrentDirectory;
+            var root = string.Empty;
+
+            while (!string.IsNullOrEmpty(cwd))
+            {
+                if (File.Exists(Path.Combine(cwd, ManifestFileName)))
+                    root = cwd;
+
+                cwd = Directory.GetParent(cwd)?.FullName;
+            }
+
+            if (string.IsNullOrEmpty(root))
+                throw new FileNotFoundException($"Manifest not found: {ManifestFileName}");
+
+            return new(
+                Root: root,
+                Manifest: Path.Combine(root, ManifestFileName),
+                Src: Path.Combine(root, "src"),
+                Build: Path.Combine(root, "build"),
+                SolutionFile: Path.Combine(root, "build", "app.slnx"),
+                ProjectFile: Path.Combine(root, "build", "app.vcxproj"));
+        });
+
+        public sealed record ProjectPaths(
+            string Root,
+            string Manifest,
+            string Src,
+            string Build,
+            string SolutionFile,
+            string ProjectFile);
     }
 }

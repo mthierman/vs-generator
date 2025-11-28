@@ -55,14 +55,14 @@ public static class App
 
             if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any())
             {
-                Console.ForegroundColor = ConsoleColor.Red;
+                Console.ForegroundColor = ConsoleColor.Yellow;
 
-                Console.Error.WriteLine($"Directory is not empty. {Paths.ManifestFileName}:");
+                Console.Error.WriteLine($"Project already exists: {Paths.ManifestFileName}:");
 
                 if (File.Exists(manifestFile))
                 {
                     string json = await File.ReadAllTextAsync(manifestFile);
-                    Console.WriteLine(json);
+                    Console.Error.WriteLine(json);
                 }
 
                 Console.ResetColor();

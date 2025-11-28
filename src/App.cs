@@ -18,7 +18,10 @@ public static class App
         public static ProcessStartInfo CXX => new() { FileName = FileName };
         public static ProcessStartInfo VSWhere => new() { FileName = VisualStudio.VSWherePath };
         public static ProcessStartInfo MSBuild => new() { FileName = VisualStudio.MSBuildPath };
+        public static ProcessStartInfo CL => new() { FileName = VisualStudio.ClPath };
         public static ProcessStartInfo Vcpkg => new() { FileName = VisualStudio.VcpkgPath };
+        public static ProcessStartInfo Ninja => new() { FileName = VisualStudio.NinjaPath };
+        public static ProcessStartInfo ClangFormat => new() { FileName = VisualStudio.ClangFormatPath };
     }
 
     public static VisualStudio.BuildConfiguration DefaultBuildConfiguration = VisualStudio.BuildConfiguration.Debug;

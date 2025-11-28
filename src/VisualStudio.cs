@@ -17,10 +17,32 @@ public static class VisualStudio
         Release
     }
 
-    private static readonly SetupConfiguration setupConfiguration = new SetupConfiguration();
+    private static readonly Lazy<ISetupInstance?> _latestInstance = new(() =>
+    {
+        var setupConfiguration = new SetupConfiguration();
+        var enumInstances = setupConfiguration.EnumAllInstances();
 
-    private static readonly Lazy<ISetupInstance?> _latest = new(GetLatestInstance);
-    public static ISetupInstance? Latest => _latest.Value;
+        ISetupInstance? latest = null;
+        ISetupInstance[] buffer = new ISetupInstance[1];
+        int fetched;
+
+        do
+        {
+            enumInstances.Next(1, buffer, out fetched);
+            if (fetched > 0)
+            {
+                var instance = buffer[0];
+                if (latest == null || string.Compare(instance.GetInstallationVersion(),
+                    latest.GetInstallationVersion(), StringComparison.Ordinal) > 0)
+                {
+                    latest = instance;
+                }
+            }
+        } while (fetched > 0);
+
+        return latest;
+    });
+    public static ISetupInstance? Latest => _latestInstance.Value;
 
     public static string? InstallPath => Latest?.GetInstallationPath();
 
@@ -57,31 +79,6 @@ public static class VisualStudio
         return Directory.GetDirectories(vcRoot)
             .OrderByDescending(Path.GetFileName)
             .FirstOrDefault();
-    }
-
-    private static ISetupInstance? GetLatestInstance()
-    {
-        var enumInstances = setupConfiguration.EnumAllInstances();
-
-        ISetupInstance? latest = null;
-        ISetupInstance[] buffer = new ISetupInstance[1];
-        int fetched;
-
-        do
-        {
-            enumInstances.Next(1, buffer, out fetched);
-            if (fetched > 0)
-            {
-                var instance = buffer[0];
-                if (latest == null || string.Compare(instance.GetInstallationVersion(),
-                    latest.GetInstallationVersion(), StringComparison.Ordinal) > 0)
-                {
-                    latest = instance;
-                }
-            }
-        } while (fetched > 0);
-
-        return latest;
     }
 
     public static async Task<int> Build(BuildConfiguration config)

@@ -84,7 +84,17 @@ public static class App
             if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any())
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.Error.WriteLine("Directory is not empty");
+
+                Console.Error.WriteLine("Directory is not empty. cxx.jsonc:");
+
+                var manifestFile = Path.Combine(Environment.CurrentDirectory, Paths.ManifestFileName);
+
+                if (File.Exists(manifestFile))
+                {
+                    string json = await File.ReadAllTextAsync(manifestFile);
+                    Console.WriteLine(json);
+                }
+
                 Console.ResetColor();
 
                 return 1;

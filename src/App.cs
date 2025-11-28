@@ -170,19 +170,23 @@ public static class App
             Console.Error.WriteLine($"Directory was not empty.");
             Console.ResetColor();
             Console.Error.WriteLine();
-            await Root.Command.Parse("--help").InvokeAsync();
+
+            await PrintHelp();
 
             return 1;
         }
 
-        await File.WriteAllTextAsync(manifestFile, JsonSerializer.Serialize(new
+        var json = JsonSerializer.Serialize(new
         {
             Config.name,
             Config.version
         }, new JsonSerializerOptions
         {
             WriteIndented = true
-        }));
+        });
+        // Console.WriteLine(json);
+        PrintError(json);
+        await File.WriteAllTextAsync(manifestFile, json);
 
         var processInfo = Exe.Vcpkg;
         processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
@@ -205,6 +209,34 @@ public static class App
     public static async Task<int> PrintHelp()
     {
         return await Root.Command.Parse("--help").InvokeAsync();
+    }
+
+    public static void Print(string message, ConsoleColor color)
+    {
+        Console.ForegroundColor = color;
+        Console.Out.WriteLine(message);
+        Console.ResetColor();
+    }
+
+    public static void PrintError(string message, ConsoleColor color)
+    {
+        Console.ForegroundColor = color;
+        Console.Error.WriteLine(message);
+        Console.ResetColor();
+    }
+
+    public static void PrintError(string message)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Error.WriteLine(message);
+        Console.ResetColor();
+    }
+
+    public static void PrintWarning(string message)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.Error.WriteLine(message);
+        Console.ResetColor();
     }
 
     public static async Task<int> InstallVcpkg()

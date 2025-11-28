@@ -74,4 +74,37 @@ public static class VisualStudio
 
         return latest;
     }
+
+    public static async Task<int> PrintInstances()
+    {
+        var setupConfig = new SetupConfiguration();
+        var enumInstances = setupConfig.EnumAllInstances(); // returns IEnumSetupInstances
+
+        ISetupInstance[] instances = new ISetupInstance[1];
+        int fetched = 0;
+
+        ISetupInstance? latestInstance = null;
+
+        // Loop until Next returns 0 items
+        do
+        {
+            enumInstances.Next(1, instances, out fetched); // returns void, fetched tells how many items
+            if (fetched == 0) break;
+
+            var instance = instances[0];
+            if (latestInstance == null ||
+                string.Compare(instance.GetInstallationVersion(), latestInstance.GetInstallationVersion(), StringComparison.Ordinal) > 0)
+            {
+                latestInstance = instance;
+            }
+
+        } while (fetched > 0);
+
+        if (latestInstance != null)
+        {
+            Console.WriteLine($"Latest VS install path: {latestInstance.GetInstallationPath()}");
+        }
+
+        return 0;
+    }
 }

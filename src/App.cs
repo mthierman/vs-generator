@@ -16,12 +16,14 @@ public static class App
     }
 
     private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
-    private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {App.Version}");
+    private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {Version}");
     private static Argument<MSBuild.BuildConfiguration> BuildConfiguration = new("BuildConfiguration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
+
     private static Argument<string[]> VSWhereArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
     private static Argument<string[]> MSBuildArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
     private static Argument<string[]> NinjaArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
     private static Argument<string[]> VcpkgArguments = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
+
     private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
     {
         ["vs"] = new Command("vs", "Visual Studio"),
@@ -73,25 +75,42 @@ public static class App
 
         SubCommand["vswhere"].SetAction(async parseResult =>
         {
-            return await ExternalCommand.Run(new(VisualStudio.VSWherePath), parseResult.GetValue(VSWhereArguments));
+            var command = VisualStudio.VSWherePath;
+
+            if (command is null || !File.Exists(command))
+                return 1;
+
+            return await ExternalCommand.Run(new(command), parseResult.GetValue(VSWhereArguments) ?? Array.Empty<string>());
         });
 
         SubCommand["msbuild"].SetAction(async parseResult =>
         {
-            if (VisualStudio.MSBuildPath is null || !File.Exists(VisualStudio.MSBuildPath))
+            var command = VisualStudio.MSBuildPath;
+
+            if (command is null || !File.Exists(command))
                 return 1;
 
-            return await ExternalCommand.Run(new(VisualStudio.MSBuildPath), parseResult.GetValue(MSBuildArguments));
+            return await ExternalCommand.Run(new(command), parseResult.GetValue(MSBuildArguments) ?? Array.Empty<string>());
         });
 
         SubCommand["ninja"].SetAction(async parseResult =>
         {
-            return await Ninja.Run(parseResult.GetValue(NinjaArguments));
+            var command = VisualStudio.NinjaPath;
+
+            if (command is null || !File.Exists(command))
+                return 1;
+
+            return await ExternalCommand.Run(new(command), parseResult.GetValue(NinjaArguments) ?? Array.Empty<string>());
         });
 
         SubCommand["vcpkg"].SetAction(async parseResult =>
         {
-            return await Vcpkg.Run(parseResult.GetValue(VcpkgArguments));
+            var command = VisualStudio.VcpkgPath;
+
+            if (command is null || !File.Exists(command))
+                return 1;
+
+            return await ExternalCommand.Run(new(command), parseResult.GetValue(VcpkgArguments) ?? Array.Empty<string>());
         });
 
         SubCommand["new"].SetAction(async parseResult =>

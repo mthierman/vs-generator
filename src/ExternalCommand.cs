@@ -4,9 +4,9 @@ namespace cxx;
 
 public static class ExternalCommand
 {
-    public static async Task<int> Run(ProcessStartInfo processStartInfo, params string[]? arguments)
+    public static async Task<int> Run(ProcessStartInfo processStartInfo, params string[] arguments)
     {
-        foreach (var argument in arguments ?? Array.Empty<string>())
+        foreach (var argument in arguments)
             processStartInfo.ArgumentList.Add(argument);
 
         using var process = Process.Start(processStartInfo)

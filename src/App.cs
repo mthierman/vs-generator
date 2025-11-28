@@ -97,14 +97,12 @@ public static class App
 
             SubCommand["run"].SetAction(async parseResult =>
             {
-                var build = await VisualStudio.Build(parseResult.GetValue(Config));
+                var exitCode = await VisualStudio.Build(parseResult.GetValue(Config));
 
-                if (build != 0)
-                    return build;
+                if (exitCode != 0)
+                    return exitCode;
 
-                Process.Start(new ProcessStartInfo(Path.Combine(Paths.Project.Build, parseResult.GetValue(Config) == BuildConfiguration.Debug ? "debug" : "release", "app.exe")))?.WaitForExit();
-
-                return 0;
+                return await Run(new(parseResult.GetValue(Config) == BuildConfiguration.Debug ? Exe.Debug.FileName : Exe.Release.FileName));
             });
 
             SubCommand["publish"].SetAction(async parseResult =>

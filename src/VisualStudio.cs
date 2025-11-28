@@ -17,168 +17,6 @@ public static class VisualStudio
         Release
     }
 
-    private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
-    public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;
-
-    private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
-        new(async () =>
-        {
-            if (!File.Exists(VSWherePath))
-                throw new FileNotFoundException($"vswhere.exe not found at {VSWherePath}");
-
-            string installPath;
-            using (var process = Process.Start(new ProcessStartInfo(VSWherePath,
-                        "-latest -products * -property installationPath")
-            {
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-            }) ?? throw new InvalidOperationException("vswhere.exe failed to start"))
-            {
-                installPath = (await process.StandardOutput.ReadToEndAsync())
-                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .FirstOrDefault()?
-                    .Trim() ?? throw new Exception("Failed to detect Visual Studio installation path");
-
-                await process.WaitForExitAsync();
-            }
-
-            var vsDevCmd = Path.Combine(installPath, "Common7", "Tools", "VsDevCmd.bat");
-
-            if (!File.Exists(vsDevCmd))
-                throw new FileNotFoundException("VsDevCmd.bat not found", vsDevCmd);
-
-            var startInfo = new ProcessStartInfo("cmd.exe")
-            {
-                Arguments = $"/c call \"{vsDevCmd}\" -arch=amd64 -host_arch=amd64 && set",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-
-            using var devCmdProcess = Process.Start(startInfo)
-                ?? throw new Exception("Failed to start dev environment capture process");
-
-            var stdoutTask = devCmdProcess.StandardOutput.ReadToEndAsync();
-            var stderrTask = devCmdProcess.StandardError.ReadToEndAsync();
-
-            await devCmdProcess.WaitForExitAsync();
-
-            var stdout = await stdoutTask;
-            var stderr = await stderrTask;
-
-            if (!string.IsNullOrWhiteSpace(stderr))
-                Console.Error.WriteLine(stderr);
-
-            var env = stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(line => line.Split('=', 2))
-                            .Where(parts => parts.Length == 2)
-                            .ToDictionary(parts => parts[0], parts => parts[1], StringComparer.OrdinalIgnoreCase);
-
-            return env;
-        });
-
-
-    // public static class DevEnvironmentTools
-    // {
-    //     private static readonly string CacheFile = Path.Combine(App.Paths.AppLocal, "DevToolsCache.json");
-    //     private static readonly string[] ToolNames = { "MSBuild.exe", "lib.exe", "link.exe", "rc.exe" };
-
-    //     // Lazy cache: either load synchronously from JSON or compute async if needed
-    //     private static readonly Lazy<Task<ConcurrentDictionary<string, string>>> _tools = new(() =>
-    //     {
-    //         // If JSON exists, load synchronously for instant access
-    //         if (File.Exists(CacheFile))
-    //         {
-    //             try
-    //             {
-    //                 var json = File.ReadAllText(CacheFile);
-    //                 var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-    //                 if (dict != null)
-    //                     return Task.FromResult(new ConcurrentDictionary<string, string>(dict, StringComparer.OrdinalIgnoreCase));
-    //             }
-    //             catch
-    //             {
-    //                 // Ignore errors and fall back to async computation
-    //             }
-    //         }
-
-    //         // Otherwise compute asynchronously
-    //         return ComputeToolsAsync();
-    //     });
-
-    //     private static async Task<ConcurrentDictionary<string, string>> ComputeToolsAsync()
-    //     {
-    //         var dict = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-    //         await Parallel.ForEachAsync(ToolNames, async (tool, _) =>
-    //         {
-    //             var path = await GetCommandFromDevEnv(tool);
-    //             dict[tool] = path;
-    //         });
-
-    //         // Save JSON for next runs
-    //         try
-    //         {
-    //             var jsonSave = JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true });
-    //             await File.WriteAllTextAsync(CacheFile, jsonSave);
-    //         }
-    //         catch
-    //         {
-    //             // ignore save errors
-    //         }
-
-    //         return dict;
-    //     }
-
-    //     private static Task<ConcurrentDictionary<string, string>> Tools => _tools.Value;
-
-    //     private static async Task<string> GetTool(string name) => (await Tools)[name];
-
-    //     // Public accessors using ValueTask for minimal overhead
-    //     public static ValueTask<string> MSBuild() => new(GetTool("MSBuild.exe"));
-    //     public static ValueTask<string> Lib() => new(GetTool("lib.exe"));
-    //     public static ValueTask<string> Link() => new(GetTool("link.exe"));
-    //     public static ValueTask<string> RC() => new(GetTool("rc.exe"));
-    // }
-
-    // public static async Task<string> GetCommandFromDevEnv(string command)
-    // {
-    //     var devEnv = await DevEnv;
-
-    //     if (!devEnv.TryGetValue("PATH", out var pathValue) &&
-    //         !devEnv.TryGetValue("Path", out pathValue))
-    //     {
-    //         throw new KeyNotFoundException("PATH environment variable not found in developer environment.");
-    //     }
-
-    //     string script = $@"
-    //         $env:PATH = '{pathValue}'
-    //         where.exe {command}
-    //     ";
-
-    //     using var ps = PowerShell.Create();
-    //     ps.AddScript(script);
-
-    //     foreach (var kvp in devEnv)
-    //         ps.Runspace.SessionStateProxy.SetVariable(kvp.Key, kvp.Value);
-
-    //     var results = await Task.Run(() => ps.Invoke());
-
-    //     var lines = new List<string>();
-
-    //     foreach (var r in results)
-    //     {
-    //         var line = r?.ToString();
-    //         if (!string.IsNullOrWhiteSpace(line))
-    //             lines.Add(line);
-    //     }
-
-    //     if (lines.Count == 0)
-    //         throw new FileNotFoundException($"{command} not found in the developer environment PATH.");
-
-    //     return lines[0];
-    // }
-
     private static readonly SetupConfiguration setupConfiguration = new SetupConfiguration();
     private static readonly Lazy<ISetupInstance?> _latest = new(GetLatestInstance);
 
@@ -623,42 +461,202 @@ public static class VisualStudio
         }
     }
 
-    public static void GenerateCompileCommands()
-    {
-        // ----- 16. Generate compile_commands.json -----
-        //var compileCommands = new List<Dictionary<string, string>>();
+    private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
 
-        //foreach (var config in configurations)
-        //{
-        //    foreach (var platform in platforms)
-        //    {
-        //        string includeFlags = $"/I$(ProjectDir)"; // Add more include dirs as needed
-        //        string defines = preprocessor;            // from your ClCompile metadata
-        //        string languageStandard = "/std:c++23";
+    public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;
+    private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
+        new(async () =>
+        {
+            if (!File.Exists(VSWherePath))
+                throw new FileNotFoundException($"vswhere.exe not found at {VSWherePath}");
 
-        //        var allSourceFiles = Directory.GetFiles(src_dir, "*.*")
-        //                                      .Where(f => f.EndsWith(".cpp") || f.EndsWith(".ixx"));
+            string installPath;
+            using (var process = Process.Start(new ProcessStartInfo(VSWherePath,
+                        "-latest -products * -property installationPath")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            }) ?? throw new InvalidOperationException("vswhere.exe failed to start"))
+            {
+                installPath = (await process.StandardOutput.ReadToEndAsync())
+                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .FirstOrDefault()?
+                    .Trim() ?? throw new Exception("Failed to detect Visual Studio installation path");
 
-        //        foreach (var file in allSourceFiles)
-        //        {
-        //            var relativePath = Path.GetRelativePath(build_dir, file).Replace('\\', '/');
+                await process.WaitForExitAsync();
+            }
 
-        //            string command = $"cl.exe /c {languageStandard} {includeFlags} /D{defines} \"{relativePath}\"";
+            var vsDevCmd = Path.Combine(installPath, "Common7", "Tools", "VsDevCmd.bat");
 
-        //            compileCommands.Add(new Dictionary<string, string>
-        //            {
-        //                ["directory"] = Path.GetFullPath(build_dir),
-        //                ["command"] = command,
-        //                ["file"] = Path.GetFullPath(file)
-        //            });
-        //        }
-        //    }
-        //}
+            if (!File.Exists(vsDevCmd))
+                throw new FileNotFoundException("VsDevCmd.bat not found", vsDevCmd);
 
-        //var options = new JsonSerializerOptions { WriteIndented = true };
-        //string json = JsonSerializer.Serialize(compileCommands, options);
+            var startInfo = new ProcessStartInfo("cmd.exe")
+            {
+                Arguments = $"/c call \"{vsDevCmd}\" -arch=amd64 -host_arch=amd64 && set",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
 
-        //File.WriteAllText(Path.Combine(build_dir, "compile_commands.json"), json);
-        //Console.WriteLine("compile_commands.json generated.");
-    }
+            using var devCmdProcess = Process.Start(startInfo)
+                ?? throw new Exception("Failed to start dev environment capture process");
+
+            var stdoutTask = devCmdProcess.StandardOutput.ReadToEndAsync();
+            var stderrTask = devCmdProcess.StandardError.ReadToEndAsync();
+
+            await devCmdProcess.WaitForExitAsync();
+
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            if (!string.IsNullOrWhiteSpace(stderr))
+                Console.Error.WriteLine(stderr);
+
+            var env = stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(line => line.Split('=', 2))
+                            .Where(parts => parts.Length == 2)
+                            .ToDictionary(parts => parts[0], parts => parts[1], StringComparer.OrdinalIgnoreCase);
+
+            return env;
+        });
+
+    // public static class DevEnvironmentTools
+    // {
+    //     private static readonly string CacheFile = Path.Combine(App.Paths.AppLocal, "DevToolsCache.json");
+    //     private static readonly string[] ToolNames = { "MSBuild.exe", "lib.exe", "link.exe", "rc.exe" };
+
+    //     // Lazy cache: either load synchronously from JSON or compute async if needed
+    //     private static readonly Lazy<Task<ConcurrentDictionary<string, string>>> _tools = new(() =>
+    //     {
+    //         // If JSON exists, load synchronously for instant access
+    //         if (File.Exists(CacheFile))
+    //         {
+    //             try
+    //             {
+    //                 var json = File.ReadAllText(CacheFile);
+    //                 var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+    //                 if (dict != null)
+    //                     return Task.FromResult(new ConcurrentDictionary<string, string>(dict, StringComparer.OrdinalIgnoreCase));
+    //             }
+    //             catch
+    //             {
+    //                 // Ignore errors and fall back to async computation
+    //             }
+    //         }
+
+    //         // Otherwise compute asynchronously
+    //         return ComputeToolsAsync();
+    //     });
+
+    //     private static async Task<ConcurrentDictionary<string, string>> ComputeToolsAsync()
+    //     {
+    //         var dict = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    //         await Parallel.ForEachAsync(ToolNames, async (tool, _) =>
+    //         {
+    //             var path = await GetCommandFromDevEnv(tool);
+    //             dict[tool] = path;
+    //         });
+
+    //         // Save JSON for next runs
+    //         try
+    //         {
+    //             var jsonSave = JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true });
+    //             await File.WriteAllTextAsync(CacheFile, jsonSave);
+    //         }
+    //         catch
+    //         {
+    //             // ignore save errors
+    //         }
+
+    //         return dict;
+    //     }
+
+    //     private static Task<ConcurrentDictionary<string, string>> Tools => _tools.Value;
+
+    //     private static async Task<string> GetTool(string name) => (await Tools)[name];
+
+    //     // Public accessors using ValueTask for minimal overhead
+    //     public static ValueTask<string> MSBuild() => new(GetTool("MSBuild.exe"));
+    //     public static ValueTask<string> Lib() => new(GetTool("lib.exe"));
+    //     public static ValueTask<string> Link() => new(GetTool("link.exe"));
+    //     public static ValueTask<string> RC() => new(GetTool("rc.exe"));
+    // }
+
+    // public static async Task<string> GetCommandFromDevEnv(string command)
+    // {
+    //     var devEnv = await DevEnv;
+
+    //     if (!devEnv.TryGetValue("PATH", out var pathValue) &&
+    //         !devEnv.TryGetValue("Path", out pathValue))
+    //     {
+    //         throw new KeyNotFoundException("PATH environment variable not found in developer environment.");
+    //     }
+
+    //     string script = $@"
+    //         $env:PATH = '{pathValue}'
+    //         where.exe {command}
+    //     ";
+
+    //     using var ps = PowerShell.Create();
+    //     ps.AddScript(script);
+
+    //     foreach (var kvp in devEnv)
+    //         ps.Runspace.SessionStateProxy.SetVariable(kvp.Key, kvp.Value);
+
+    //     var results = await Task.Run(() => ps.Invoke());
+
+    //     var lines = new List<string>();
+
+    //     foreach (var r in results)
+    //     {
+    //         var line = r?.ToString();
+    //         if (!string.IsNullOrWhiteSpace(line))
+    //             lines.Add(line);
+    //     }
+
+    //     if (lines.Count == 0)
+    //         throw new FileNotFoundException($"{command} not found in the developer environment PATH.");
+
+    //     return lines[0];
+    // }
+
+    // public static void GenerateCompileCommands()
+    // {
+    //     var compileCommands = new List<Dictionary<string, string>>();
+
+    //     foreach (var config in configurations)
+    //     {
+    //         foreach (var platform in platforms)
+    //         {
+    //             string includeFlags = $"/I$(ProjectDir)"; // Add more include dirs as needed
+    //             string defines = preprocessor;            // from your ClCompile metadata
+    //             string languageStandard = "/std:c++23";
+
+    //             var allSourceFiles = Directory.GetFiles(src_dir, "*.*")
+    //                                           .Where(f => f.EndsWith(".cpp") || f.EndsWith(".ixx"));
+
+    //             foreach (var file in allSourceFiles)
+    //             {
+    //                 var relativePath = Path.GetRelativePath(build_dir, file).Replace('\\', '/');
+
+    //                 string command = $"cl.exe /c {languageStandard} {includeFlags} /D{defines} \"{relativePath}\"";
+
+    //                 compileCommands.Add(new Dictionary<string, string>
+    //                 {
+    //                     ["directory"] = Path.GetFullPath(build_dir),
+    //                     ["command"] = command,
+    //                     ["file"] = Path.GetFullPath(file)
+    //                 });
+    //             }
+    //         }
+    //     }
+
+    //     var options = new JsonSerializerOptions { WriteIndented = true };
+    //     string json = JsonSerializer.Serialize(compileCommands, options);
+
+    //     File.WriteAllText(Path.Combine(build_dir, "compile_commands.json"), json);
+    //     Console.WriteLine("compile_commands.json generated.");
+    // }
 }

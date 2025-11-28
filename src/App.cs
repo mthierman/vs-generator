@@ -184,8 +184,11 @@ public static class App
         {
             WriteIndented = true
         });
-        // Console.WriteLine(json);
-        PrintError(json);
+
+        Print.Err($"Generated new {Name} project", ConsoleColor.Green);
+        Console.Error.WriteLine();
+        Print.Err(json, ConsoleColor.DarkGreen);
+
         await File.WriteAllTextAsync(manifestFile, json);
 
         var processInfo = Exe.Vcpkg;
@@ -211,32 +214,21 @@ public static class App
         return await Root.Command.Parse("--help").InvokeAsync();
     }
 
-    public static void Print(string message, ConsoleColor color)
+    public static class Print
     {
-        Console.ForegroundColor = color;
-        Console.Out.WriteLine(message);
-        Console.ResetColor();
-    }
+        public static void Out(string message, ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+            Console.Out.WriteLine(message);
+            Console.ResetColor();
+        }
 
-    public static void PrintError(string message, ConsoleColor color)
-    {
-        Console.ForegroundColor = color;
-        Console.Error.WriteLine(message);
-        Console.ResetColor();
-    }
-
-    public static void PrintError(string message)
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.Error.WriteLine(message);
-        Console.ResetColor();
-    }
-
-    public static void PrintWarning(string message)
-    {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Error.WriteLine(message);
-        Console.ResetColor();
+        public static void Err(string message, ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+            Console.Error.WriteLine(message);
+            Console.ResetColor();
+        }
     }
 
     public static async Task<int> InstallVcpkg()

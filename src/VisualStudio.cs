@@ -21,7 +21,7 @@ public static class VisualStudio
     private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
         new(async () =>
         {
-            var devPrompt = Find.DeveloperPrompt(Project.Tools.VSWhere);
+            var devPrompt = Find.DeveloperPrompt(App.Paths.Tools.VSWhere);
 
             var startInfo = new ProcessStartInfo("cmd.exe")
             {
@@ -64,7 +64,7 @@ public static class VisualStudio
 
     public static class DevEnvironmentTools
     {
-        private static readonly string CacheFile = Path.Combine(Project.Paths.AppLocal, "DevToolsCache.json");
+        private static readonly string CacheFile = Path.Combine(App.Paths.AppLocal, "DevToolsCache.json");
         private static readonly string[] ToolNames = { "MSBuild.exe", "lib.exe", "link.exe", "rc.exe" };
 
         // Lazy cache: either load synchronously from JSON or compute async if needed
@@ -238,16 +238,16 @@ public static class VisualStudio
 
     public static async Task<int> Build(BuildConfiguration config)
     {
-        Directory.CreateDirectory(Project.Core.Build);
+        Directory.CreateDirectory(App.Paths.Core.Build);
 
         if (await Generate() != 0)
             return 1;
 
-        if (string.IsNullOrWhiteSpace(Project.Tools.MSBuild))
+        if (string.IsNullOrWhiteSpace(App.Paths.Tools.MSBuild))
             throw new InvalidOperationException("MSBuild path not set.");
 
         var args = $"-nologo -v:minimal /p:Configuration={(config == BuildConfiguration.Debug ? "Debug" : "Release")} /p:Platform=x64";
-        var process = Process.Start(new ProcessStartInfo(Project.Tools.MSBuild, args) { WorkingDirectory = Project.Core.Build }) ?? throw new InvalidOperationException("Failed to start MSBuild");
+        var process = Process.Start(new ProcessStartInfo(App.Paths.Tools.MSBuild, args) { WorkingDirectory = App.Paths.Core.Build }) ?? throw new InvalidOperationException("Failed to start MSBuild");
         process.WaitForExit();
 
         Console.Error.WriteLine();
@@ -257,24 +257,24 @@ public static class VisualStudio
 
     public static int Clean()
     {
-        if (!Directory.Exists(Project.Core.Build))
+        if (!Directory.Exists(App.Paths.Core.Build))
             return 1;
 
         string[] dirs = { "debug", "release" };
 
         foreach (string dir in dirs)
         {
-            var markedDir = Path.Combine(Project.Core.Build, dir);
+            var markedDir = Path.Combine(App.Paths.Core.Build, dir);
 
             if (Directory.Exists(markedDir))
                 Directory.Delete(markedDir, true);
         }
 
-        string[] files = { Project.Core.SolutionFile, Project.Core.ProjectFile };
+        string[] files = { App.Paths.Core.SolutionFile, App.Paths.Core.ProjectFile };
 
         foreach (string file in files)
         {
-            var markedFile = Path.Combine(Project.Core.Build, file);
+            var markedFile = Path.Combine(App.Paths.Core.Build, file);
 
             if (File.Exists(markedFile))
                 File.Delete(markedFile);
@@ -304,7 +304,7 @@ public static class VisualStudio
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
-        using var stream = File.Create(Path.Combine(Project.Paths.AppLocal, "DevEnv.json"));
+        using var stream = File.Create(Path.Combine(App.Paths.AppLocal, "DevEnv.json"));
         await JsonSerializer.SerializeAsync(stream, env, options);
     }
 
@@ -330,7 +330,7 @@ public static class VisualStudio
 
         solutionProject.Id = Guid.NewGuid();
 
-        await SolutionSerializers.SlnXml.SaveAsync(Project.Core.SolutionFile, solutionModel, new CancellationToken());
+        await SolutionSerializers.SlnXml.SaveAsync(App.Paths.Core.SolutionFile, solutionModel, new CancellationToken());
 
         return 0;
     }
@@ -485,22 +485,22 @@ public static class VisualStudio
         vcpkg.AddProperty("VcpkgUseMD", "true");
 
         // ----- 15. Add sources from "src" folder -----
-        var sourceFiles = Directory.GetFiles(Project.Core.Src, "*.cpp");
-        var moduleFiles = Directory.GetFiles(Project.Core.Src, "*.ixx");
-        var headerFiles = Directory.GetFiles(Project.Core.Src, "*.h");
+        var sourceFiles = Directory.GetFiles(App.Paths.Core.Src, "*.cpp");
+        var moduleFiles = Directory.GetFiles(App.Paths.Core.Src, "*.ixx");
+        var headerFiles = Directory.GetFiles(App.Paths.Core.Src, "*.h");
 
         var sources = project.AddItemGroup();
 
         foreach (var sourceFile in sourceFiles)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Project.Core.Build, sourceFile).Replace('\\', '/'));
+            sources.AddItem("ClCompile", Path.GetRelativePath(App.Paths.Core.Build, sourceFile).Replace('\\', '/'));
 
         foreach (var moduleFile in moduleFiles)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Project.Core.Build, moduleFile).Replace('\\', '/'));
+            sources.AddItem("ClCompile", Path.GetRelativePath(App.Paths.Core.Build, moduleFile).Replace('\\', '/'));
 
         foreach (var headerFile in headerFiles)
-            sources.AddItem("ClInclude", Path.GetRelativePath(Project.Core.Build, headerFile).Replace('\\', '/'));
+            sources.AddItem("ClInclude", Path.GetRelativePath(App.Paths.Core.Build, headerFile).Replace('\\', '/'));
 
-        project.Save(Project.Core.ProjectFile);
+        project.Save(App.Paths.Core.ProjectFile);
 
         return 0;
     }

@@ -10,6 +10,81 @@ public static class App
               .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
               .InformationalVersion ?? "0.0.0";
 
+    public static class Paths
+    {
+        public static readonly string Local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        public static readonly string Roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        public static readonly string AppLocal = Path.Combine(Local, "cxx");
+        public static readonly string AppRoaming = Path.Combine(Roaming, "cxx");
+
+        public static class Manifest
+        {
+            public static string FileName = "cxx.jsonc";
+            public static string FullPath = Path.Combine(AppLocal, "cxx.jsonc");
+        }
+
+        private static readonly Lazy<CorePaths> _corePaths = new(InitCorePaths);
+        private static readonly Lazy<ToolsPaths> _toolPaths = new(InitToolsPaths);
+
+        public static CorePaths Core => _corePaths.Value;
+        public static ToolsPaths Tools => _toolPaths.Value;
+
+        public sealed record CorePaths(
+            string ProjectRoot,
+            string Manifest,
+            string Src,
+            string Build,
+            string SolutionFile,
+            string ProjectFile);
+
+        public sealed record ToolsPaths(
+            string VSWhere,
+            string MSBuild,
+            string Vcpkg,
+            string ClangFormat);
+
+        private static CorePaths InitCorePaths()
+        {
+            var cwd = Environment.CurrentDirectory;
+            var root = string.Empty;
+
+            while (!string.IsNullOrEmpty(cwd))
+            {
+                if (File.Exists(Path.Combine(cwd, Manifest.FileName)))
+                    root = cwd;
+
+                cwd = Directory.GetParent(cwd)?.FullName;
+            }
+
+            if (string.IsNullOrEmpty(root))
+                throw new FileNotFoundException($"No {Manifest.FileName}");
+
+            return new(
+                ProjectRoot: root,
+                Manifest: Path.Combine(root, Manifest.FileName),
+                Src: Path.Combine(root, "src"),
+                Build: Path.Combine(root, "build"),
+                SolutionFile: Path.Combine(root, "build", "app.slnx"),
+                ProjectFile: Path.Combine(root, "build", "app.vcxproj"));
+        }
+
+        private static ToolsPaths InitToolsPaths()
+        {
+            var vswhere = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                            @"Microsoft Visual Studio\Installer\vswhere.exe");
+
+            return new(
+                VSWhere: Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                            @"Microsoft Visual Studio\Installer\vswhere.exe"),
+                MSBuild: Find.MSBuild(vswhere),
+                Vcpkg: Find.Vcpkg(),
+                ClangFormat: Find.ClangFormat()
+            );
+        }
+    }
+
     public static int Start(string[] args)
     {
         return RootCommand.Parse(args).Invoke();
@@ -36,7 +111,7 @@ public static class App
         return process.ExitCode;
     }
 
-    private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
+    // private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
     private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {Version}");
     private static Argument<VisualStudio.BuildConfiguration> BuildConfiguration = new("BuildConfiguration") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
 
@@ -147,7 +222,7 @@ public static class App
         {
             await VisualStudio.Build(parseResult.GetValue(BuildConfiguration));
 
-            Process.Start(new ProcessStartInfo(Path.Combine(Project.Core.Build, parseResult.GetValue(BuildConfiguration) == VisualStudio.BuildConfiguration.Debug ? "debug" : "release", "app.exe")))?.WaitForExit();
+            Process.Start(new ProcessStartInfo(Path.Combine(Paths.Core.Build, parseResult.GetValue(BuildConfiguration) == VisualStudio.BuildConfiguration.Debug ? "debug" : "release", "app.exe")))?.WaitForExit();
 
             return 0;
         });

@@ -145,7 +145,7 @@ public static class VisualStudio
         if (!Directory.Exists(App.Paths.Project.Build))
             return 1;
 
-        string[] dirs = { "debug", "release" };
+        string[] dirs = { "debug", "release", "publish" };
 
         foreach (string dir in dirs)
         {

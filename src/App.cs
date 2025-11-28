@@ -135,7 +135,15 @@ public static class App
 
         await File.WriteAllTextAsync(Path.Combine(cwd, App.Paths.Manifest.FileName), "{}");
 
-        await VisualStudio.RunVcpkg("new", "--application");
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = VisualStudio.VcpkgPath
+        };
+
+        startInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+        startInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+
+        await Run(startInfo, "new", "--application");
 
         if (!Directory.Exists(App.Paths.Core.Src))
             Directory.CreateDirectory(App.Paths.Core.Src);
@@ -252,7 +260,15 @@ auto wmain() -> int {
 
         SubCommand["install"].SetAction(async parseResult =>
         {
-            return await VisualStudio.RunVcpkg("install");
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = VisualStudio.VcpkgPath
+            };
+
+            startInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+            startInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+
+            return await Run(startInfo, "install");
         });
 
         SubCommand["generate"].SetAction(async parseResult =>

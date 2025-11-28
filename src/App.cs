@@ -83,12 +83,11 @@ public static class App
             SubCommand["generate"].SetAction(async parseResult =>
             {
                 var exitCode = await VisualStudio.Generate();
+
                 if (exitCode != 0)
                     return exitCode;
 
-                Print.Err("Generation successful.", ConsoleColor.Green);
-
-                return await VisualStudio.Generate();
+                return exitCode;
             });
 
             SubCommand["build"].SetAction(async parseResult =>

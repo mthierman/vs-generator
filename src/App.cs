@@ -7,16 +7,18 @@ namespace CXX;
 
 public static class App
 {
-    public static string Version { get; } = Assembly.GetExecutingAssembly()
-              .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-              .InformationalVersion ?? "0.0.0";
-
-    // public static VisualStudio.BuildConfiguration BuildConfiguration = VisualStudio.BuildConfiguration.Debug;
+    public static readonly string Name = "cxx";
+    public static readonly string FileName = $"{Name}.exe";
+    public static readonly string Version = Assembly.GetExecutingAssembly()
+      .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+      .InformationalVersion ?? "0.0.0";
+    public static ProcessStartInfo ProcessInfo => new() { FileName = FileName };
+    public static VisualStudio.BuildConfiguration DefaultBuildConfiguration = VisualStudio.BuildConfiguration.Debug;
 
     public static class Config
     {
-        public static string name = "cxx-project";
-        public static string version = "0.0.0";
+        public static string name = $"{Name}-project";
+        public static string version = $"{Version}";
     }
 
     private static RootCommand RootCommand { get; } = new RootCommand($"C++ build tool\nversion {Version}");
@@ -60,14 +62,9 @@ public static class App
                 Console.ResetColor();
                 Console.Error.WriteLine();
 
-                var testExe = new ProcessStartInfo
-                {
-                    FileName = "cxx.exe"
-                };
-
-                testExe.ArgumentList.Add("--help");
-
-                await Run(testExe);
+                var processInfo = ProcessInfo;
+                processInfo.ArgumentList.Add("--help");
+                await Run(processInfo);
 
                 return 1;
             }

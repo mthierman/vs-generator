@@ -68,15 +68,16 @@ public static class App
                 testExe.ArgumentList.Add("--help");
 
                 await Run(testExe);
-                // Console.Error.WriteLine();
 
-                // if (File.Exists(manifestFile))
-                // {
-                //     string json = await File.ReadAllTextAsync(manifestFile);
-                //     Console.Error.WriteLine(json);
-                // }
+                return 1;
+            }
 
-                // Console.ResetColor();
+            if (File.Exists(manifestFile))
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Error.WriteLine($"{manifestFile} exists");
+                Console.ResetColor();
+                Console.Error.WriteLine();
 
                 return 1;
             }
@@ -101,14 +102,14 @@ public static class App
             await Run(startInfo, "new", "--application");
 
             await File.WriteAllTextAsync(Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"), @"
-            #include <print>
+                #include <print>
 
-            auto wmain() -> int {
-                std::println(""Hello, World!"");
+                auto wmain() -> int {
+                    std::println(""Hello, World!"");
 
-                return 0;
-            }
-        ".Trim());
+                    return 0;
+                }
+            ".Trim());
 
             return 0;
         });

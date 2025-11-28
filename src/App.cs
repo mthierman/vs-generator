@@ -160,7 +160,7 @@ public static class App
 
         SubCommand["devenv"].SetAction(async parseResult =>
         {
-            // var devEnv = await VisualStudio.DevEnv;
+            var devEnv = await VisualStudio.DevEnv;
 
             // foreach (var kv in devEnv)
             // {

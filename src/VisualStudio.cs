@@ -18,50 +18,65 @@ public static class VisualStudio
     }
 
     private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
-    // public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;
-    // private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
-    //     new(async () =>
-    //     {
-    //         var devPrompt = App.Find.DeveloperPrompt(VSWherePath);
+    public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;
 
-    //         var startInfo = new ProcessStartInfo("cmd.exe")
-    //         {
-    //             Arguments = $"/c call \"{devPrompt}\" -arch=amd64 -host_arch=amd64 && set",
-    //             UseShellExecute = false,
-    //             RedirectStandardOutput = true,
-    //             RedirectStandardError = true,
-    //         };
+    private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
+        new(async () =>
+        {
+            if (!File.Exists(VSWherePath))
+                throw new FileNotFoundException($"vswhere.exe not found at {VSWherePath}");
 
-    //         using var process = Process.Start(startInfo)
-    //             ?? throw new Exception("Failed to start dev environment capture process");
+            string installPath;
+            using (var process = Process.Start(new ProcessStartInfo(VSWherePath,
+                        "-latest -products * -property installationPath")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            }) ?? throw new InvalidOperationException("vswhere.exe failed to start"))
+            {
+                installPath = (await process.StandardOutput.ReadToEndAsync())
+                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .FirstOrDefault()?
+                    .Trim() ?? throw new Exception("Failed to detect Visual Studio installation path");
 
-    //         var stdoutTask = process.StandardOutput.ReadToEndAsync();
-    //         var stderrTask = process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+            }
 
-    //         await process.WaitForExitAsync();
+            var vsDevCmd = Path.Combine(installPath, "Common7", "Tools", "VsDevCmd.bat");
 
-    //         var stdout = await stdoutTask;
-    //         var stderr = await stderrTask;
+            if (!File.Exists(vsDevCmd))
+                throw new FileNotFoundException("VsDevCmd.bat not found", vsDevCmd);
 
-    //         if (!string.IsNullOrWhiteSpace(stderr))
-    //             Console.Error.WriteLine(stderr);
+            var startInfo = new ProcessStartInfo("cmd.exe")
+            {
+                Arguments = $"/c call \"{vsDevCmd}\" -arch=amd64 -host_arch=amd64 && set",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
 
-    //         var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            using var devCmdProcess = Process.Start(startInfo)
+                ?? throw new Exception("Failed to start dev environment capture process");
 
-    //         foreach (var line in stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
-    //         {
-    //             int eq = line.IndexOf('=');
-    //             if (eq <= 0)
-    //                 continue;
+            var stdoutTask = devCmdProcess.StandardOutput.ReadToEndAsync();
+            var stderrTask = devCmdProcess.StandardError.ReadToEndAsync();
 
-    //             var key = line[..eq];
-    //             var value = line[(eq + 1)..];
+            await devCmdProcess.WaitForExitAsync();
 
-    //             env[key] = value;
-    //         }
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
 
-    //         return env;
-    //     });
+            if (!string.IsNullOrWhiteSpace(stderr))
+                Console.Error.WriteLine(stderr);
+
+            var env = stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(line => line.Split('=', 2))
+                            .Where(parts => parts.Length == 2)
+                            .ToDictionary(parts => parts[0], parts => parts[1], StringComparer.OrdinalIgnoreCase);
+
+            return env;
+        });
+
 
     // public static class DevEnvironmentTools
     // {
@@ -289,18 +304,18 @@ public static class VisualStudio
         return 0;
     }
 
-    // public static async Task<string> GetWindowsSdkExecutablePath()
-    // {
-    //     var devEnv = await DevEnv;
+    public static async Task<string> GetWindowsSdkExecutablePath()
+    {
+        var devEnv = await DevEnv;
 
-    //     if (!devEnv.TryGetValue("WindowsSdkVerBinPath", out var sdkPath))
-    //         throw new KeyNotFoundException("WindowsSdkVerBinPath not found in developer environment.");
+        if (!devEnv.TryGetValue("WindowsSdkVerBinPath", out var sdkPath))
+            throw new KeyNotFoundException("WindowsSdkVerBinPath not found in developer environment.");
 
-    //     if (!Directory.Exists(sdkPath))
-    //         throw new DirectoryNotFoundException($"Windows SDK path does not exist: {sdkPath}");
+        if (!Directory.Exists(sdkPath))
+            throw new DirectoryNotFoundException($"Windows SDK path does not exist: {sdkPath}");
 
-    //     return Path.Combine(sdkPath, "x64");
-    // }
+        return Path.Combine(sdkPath, "x64");
+    }
 
     private static async Task SaveEnvToJson(Dictionary<string, string> env)
     {

@@ -2,7 +2,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Reflection;
 
-namespace cxx;
+namespace CXX;
 
 public static class App
 {

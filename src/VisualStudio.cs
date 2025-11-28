@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.Setup.Configuration;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
-namespace cxx;
+namespace CXX;
 
 public static class VisualStudio
 {

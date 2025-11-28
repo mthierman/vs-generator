@@ -12,7 +12,7 @@ public static class Clang
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = "clang-format",
+                FileName = VisualStudio.ClangFormatPath,
                 Arguments = $"-i \"{file}\"",
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,

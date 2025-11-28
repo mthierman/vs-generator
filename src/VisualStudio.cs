@@ -193,6 +193,11 @@ public static class VisualStudio
         : null;
 
     /// <summary>The path to cl.exe compiler of the latest Visual Studio instance (x64).</summary>
+    public static string? ClangFormatPath => InstallPath is string path
+        ? Path.Combine(path, "VC", "Tools", "Llvm", "x64", "bin", "clang-format.exe")
+        : null;
+
+    /// <summary>The path to cl.exe compiler of the latest Visual Studio instance (x64).</summary>
     public static string? ClPath => LatestMSVCVersionPath() is string path
         ? Path.Combine(path, "bin", "Hostx64", "x64", "cl.exe")
         : null;

@@ -56,16 +56,27 @@ public static class App
             if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any())
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-
-                Console.Error.WriteLine($"Project already exists: {Paths.ManifestFileName}:");
-
-                if (File.Exists(manifestFile))
-                {
-                    string json = await File.ReadAllTextAsync(manifestFile);
-                    Console.Error.WriteLine(json);
-                }
-
+                Console.Error.WriteLine($"Directory is not empty");
                 Console.ResetColor();
+                Console.Error.WriteLine();
+
+                var testExe = new ProcessStartInfo
+                {
+                    FileName = "cxx.exe"
+                };
+
+                testExe.ArgumentList.Add("--help");
+
+                await Run(testExe);
+                // Console.Error.WriteLine();
+
+                // if (File.Exists(manifestFile))
+                // {
+                //     string json = await File.ReadAllTextAsync(manifestFile);
+                //     Console.Error.WriteLine(json);
+                // }
+
+                // Console.ResetColor();
 
                 return 1;
             }
@@ -198,9 +209,6 @@ public static class App
 
     public static async Task<int> Run(ProcessStartInfo processStartInfo, params string[]? arguments)
     {
-        if (processStartInfo.FileName is null || !File.Exists(processStartInfo.FileName))
-            return 1;
-
         processStartInfo.UseShellExecute = false;
         processStartInfo.RedirectStandardOutput = false;
         processStartInfo.RedirectStandardError = false;

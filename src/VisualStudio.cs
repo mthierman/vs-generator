@@ -21,7 +21,7 @@ public static class VisualStudio
     private static readonly Lazy<Task<Dictionary<string, string>>> _lazyEnv =
         new(async () =>
         {
-            var devPrompt = Find.DeveloperPrompt(App.Paths.Tools.VSWhere);
+            var devPrompt = App.Find.DeveloperPrompt(App.Paths.Tools.VSWhere);
 
             var startInfo = new ProcessStartInfo("cmd.exe")
             {

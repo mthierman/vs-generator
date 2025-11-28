@@ -102,9 +102,7 @@ public static class App
 
         await Run(startInfo, "new", "--application");
 
-        Directory.CreateDirectory(Paths.Project.Src);
-
-        await File.WriteAllTextAsync(Path.Combine(Paths.Project.Src, "app.cpp"), @"
+        await File.WriteAllTextAsync(Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"), @"
             #include <print>
 
             auto wmain() -> int {

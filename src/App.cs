@@ -86,7 +86,7 @@ public static class App
                 if (exitCode != 0)
                     return exitCode;
 
-                Print.Err("Generation successful", ConsoleColor.Green);
+                Print.Err("Generation successful.", ConsoleColor.Green);
 
                 return await VisualStudio.Generate();
             });

@@ -87,15 +87,10 @@ public static class App
                 WriteIndented = true
             }));
 
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = VisualStudio.VcpkgPath
-            };
-
-            startInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-            startInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-
-            await Run(startInfo, "new", "--application");
+            var processInfo = Exe.Vcpkg;
+            processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+            processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+            await Run(processInfo, "new", "--application");
 
             await File.WriteAllTextAsync(Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"), @"
                 #include <print>
@@ -112,15 +107,10 @@ public static class App
 
         SubCommand["install"].SetAction(async parseResult =>
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = VisualStudio.VcpkgPath
-            };
-
-            startInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-            startInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-
-            return await Run(startInfo, "install");
+            var processInfo = Exe.Vcpkg;
+            processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+            processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+            return await Run(processInfo, "install");
         });
 
         SubCommand["generate"].SetAction(async parseResult =>

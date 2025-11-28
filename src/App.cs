@@ -64,52 +64,12 @@ public static class App
 
         SubCommand["new"].SetAction(async parseResult =>
         {
-            var manifestFile = Path.Combine(Environment.CurrentDirectory, Paths.ManifestFileName);
-
-            if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() || File.Exists(manifestFile))
-            {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Error.WriteLine($"Directory is not empty");
-                Console.ResetColor();
-                Console.Error.WriteLine();
-                await RootCommand.Parse("--help").InvokeAsync();
-
-                return 1;
-            }
-
-            await File.WriteAllTextAsync(manifestFile, JsonSerializer.Serialize(new
-            {
-                Config.name,
-                Config.version
-            }, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            }));
-
-            var processInfo = Exe.Vcpkg;
-            processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-            processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-            await Run(processInfo, "new", "--application");
-
-            await File.WriteAllTextAsync(Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"), @"
-                #include <print>
-
-                auto wmain() -> int {
-                    std::println(""Hello, World!"");
-
-                    return 0;
-                }
-            ".Trim());
-
-            return 0;
+            return await NewProject();
         });
 
         SubCommand["install"].SetAction(async parseResult =>
         {
-            var processInfo = Exe.Vcpkg;
-            processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-            processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-            return await Run(processInfo, "install");
+            return await InstallVcpkg();
         });
 
         SubCommand["generate"].SetAction(async parseResult =>
@@ -188,9 +148,59 @@ public static class App
         });
     }
 
+    public static async Task<int> NewProject()
+    {
+        var manifestFile = Path.Combine(Environment.CurrentDirectory, Paths.ManifestFileName);
+
+        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() || File.Exists(manifestFile))
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Error.WriteLine($"Directory is not empty");
+            Console.ResetColor();
+            Console.Error.WriteLine();
+            await RootCommand.Parse("--help").InvokeAsync();
+
+            return 1;
+        }
+
+        await File.WriteAllTextAsync(manifestFile, JsonSerializer.Serialize(new
+        {
+            Config.name,
+            Config.version
+        }, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        }));
+
+        var processInfo = Exe.Vcpkg;
+        processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+        processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+        await Run(processInfo, "new", "--application");
+
+        await File.WriteAllTextAsync(Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"), @"
+                #include <print>
+
+                auto wmain() -> int {
+                    std::println(""Hello, World!"");
+
+                    return 0;
+                }
+            ".Trim());
+
+        return 0;
+    }
+
     public static async Task<int> PrintHelp()
     {
         return await RootCommand.Parse("--help").InvokeAsync();
+    }
+
+    public static async Task<int> InstallVcpkg()
+    {
+        var processInfo = Exe.Vcpkg;
+        processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+        processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+        return await Run(processInfo, "install");
     }
 
     public static int Start(string[] args)

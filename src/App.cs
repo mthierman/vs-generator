@@ -166,11 +166,7 @@ public static class App
 
         if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() || File.Exists(manifestFile))
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine($"Directory was not empty.");
-            Console.ResetColor();
-            Console.Error.WriteLine();
-
+            Print.Err($"Directory was not empty.", ConsoleColor.Red);
             await PrintHelp();
 
             return 1;
@@ -211,6 +207,7 @@ public static class App
 
     public static async Task<int> PrintHelp()
     {
+        Print.Err();
         return await Root.Command.Parse("--help").InvokeAsync();
     }
 
@@ -221,6 +218,12 @@ public static class App
             Console.ForegroundColor = color;
             Console.Out.WriteLine(message);
             Console.ResetColor();
+        }
+
+        public static void Err()
+        {
+            Console.ResetColor();
+            Console.Error.WriteLine();
         }
 
         public static void Err(string message, ConsoleColor color)

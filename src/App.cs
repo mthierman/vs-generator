@@ -75,9 +75,7 @@ public static class App
                             @"Microsoft Visual Studio\Installer\vswhere.exe");
 
             return new(
-                VSWhere: Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                            @"Microsoft Visual Studio\Installer\vswhere.exe"),
+                VSWhere: vswhere,
                 MSBuild: Find.MSBuild(vswhere),
                 Vcpkg: Find.Vcpkg(),
                 ClangFormat: Find.ClangFormat()

@@ -251,7 +251,7 @@ public static class App
 
         SubCommand["format"].SetAction(async parseResult =>
         {
-            await Clang.FormatAsync();
+            await VisualStudio.FormatAsync();
 
             return 0;
         });

@@ -115,7 +115,7 @@ public static class App
                 Config.version
             }, new JsonSerializerOptions
             {
-                WriteIndented = true // makes the JSON pretty-printed
+                WriteIndented = true
             }));
 
             var startInfo = new ProcessStartInfo

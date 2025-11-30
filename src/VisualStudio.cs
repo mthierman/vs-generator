@@ -9,6 +9,29 @@ namespace CXX;
 
 public static class VisualStudio
 {
+    public static string? FindExeInPath(string exeName)
+    {
+        var fileName = exeName + (OperatingSystem.IsWindows() && !exeName.EndsWith(".exe") ? ".exe" : "");
+
+        var paths = Environment.GetEnvironmentVariable("PATH")?
+                    .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                    ?? Array.Empty<string>();
+
+        foreach (var path in paths)
+        {
+            try
+            {
+                var fullPath = Path.Combine(path.Trim(), fileName);
+
+                if (File.Exists(fullPath))
+                    return fullPath;
+            }
+            catch { }
+        }
+
+        return null;
+    }
+
     private static readonly SemaphoreSlim ConsoleLock = new SemaphoreSlim(1, 1);
 
     public static Task<Dictionary<string, string>> DevEnv => _lazyEnv.Value;

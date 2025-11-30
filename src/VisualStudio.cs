@@ -108,7 +108,7 @@ public static class VisualStudio
     public static string? MSBuildPath => CombinePath(InstallPath, "MSBuild", "Current", "Bin", "amd64", "MSBuild.exe");
     public static string? ClPath => CombinePath(LatestMSVCVersionPath(), "bin", "Hostx64", "x64", "cl.exe");
     public static string? VcpkgPath => GetVcpkgExe();
-    public static string? NinjaPath => CombinePath(InstallPath, "Common7", "IDE", "CommonExtensions", "Microsoft", "CMake", "Ninja", "ninja.exe");
+    public static string? NinjaPath => GetNinjaExe();
     public static string? ClangFormatPath => CombinePath(InstallPath, "VC", "Tools", "Llvm", "x64", "bin", "clang-format.exe");
 
     private static string? GetVcpkgExe()
@@ -128,6 +128,21 @@ public static class VisualStudio
             return onPath;
 
         var bundled = CombinePath(InstallPath, "VC", "vcpkg", "vcpkg.exe");
+
+        if (File.Exists(bundled))
+            return bundled;
+
+        return null;
+    }
+
+    private static string? GetNinjaExe()
+    {
+        var onPath = FindExeOnPath("ninja.exe");
+
+        if (onPath != null)
+            return onPath;
+
+        var bundled = CombinePath(InstallPath, "Common7", "IDE", "CommonExtensions", "Microsoft", "CMake", "Ninja", "ninja.exe");
 
         if (File.Exists(bundled))
             return bundled;

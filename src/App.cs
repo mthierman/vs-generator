@@ -53,6 +53,7 @@ public static class App
         private static Argument<string[]> VSWhereArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> MSBuildArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> NinjaArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
+        private static Argument<string[]> NugetArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> VcpkgArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
         {
@@ -68,6 +69,7 @@ public static class App
             ["vswhere"] = new Command("vswhere") { VSWhereArgs },
             ["msbuild"] = new Command("msbuild") { MSBuildArgs },
             ["ninja"] = new Command("ninja") { NinjaArgs },
+            ["nuget"] = new Command("nuget") { NugetArgs },
             ["vcpkg"] = new Command("vcpkg") { VcpkgArgs },
         };
 
@@ -173,6 +175,14 @@ public static class App
                     return 1;
 
                 return await Run(new(VisualStudio.NinjaPath), parseResult.GetValue(NinjaArgs));
+            });
+
+            SubCommand["nuget"].SetAction(async parseResult =>
+            {
+                // if (VisualStudio.NugetPath is null)
+                //     return 1;
+
+                return await Run(new("nuget.exe"), parseResult.GetValue(VcpkgArgs));
             });
 
             SubCommand["vcpkg"].SetAction(async parseResult =>

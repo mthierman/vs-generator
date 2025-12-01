@@ -21,42 +21,6 @@ public static class App
           .InformationalVersion ?? "0.0.0";
     }
 
-    public sealed class ProjectConfig
-    {
-        public string name { get; set; } = $"{MetaData.Name}-project";
-        public string version { get; set; } = "0.0.0";
-    }
-
-    public static class ConfigManager
-    {
-        public static readonly JsonSerializerOptions Options = new()
-        {
-            WriteIndented = true,
-            AllowTrailingCommas = true,
-            ReadCommentHandling = JsonCommentHandling.Skip
-        };
-
-        public static ProjectConfig Load(string path)
-        {
-            if (!File.Exists(path))
-            {
-                var cfg = new ProjectConfig();
-                Save(cfg, path);
-                return cfg;
-            }
-
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<ProjectConfig>(json, Options)
-                   ?? new ProjectConfig();
-        }
-
-        public static void Save(ProjectConfig config, string path)
-        {
-            var json = JsonSerializer.Serialize(config, Options);
-            File.WriteAllText(path, json);
-        }
-    }
-
     public enum BuildConfiguration
     {
         Debug,
@@ -258,13 +222,13 @@ public static class App
             return 1;
         }
 
-        var config = new ProjectConfig
+        var config = new Project.Config
         {
             name = $"{MetaData.Name}-project",
             version = "0.0.0"
         };
 
-        ConfigManager.Save(config, manifestFile);
+        Project.Save(config, manifestFile);
 
         Print.Err($"Generated new {MetaData.Name} project", ConsoleColor.Green);
         Console.Error.WriteLine();

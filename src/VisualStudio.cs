@@ -218,7 +218,7 @@ public static class VisualStudio
         } while (fetched > 0);
     }
 
-    public static async Task<int> Build(App.BuildConfiguration config)
+    public static async Task<int> Build(Project.BuildConfiguration config)
     {
         if (!Directory.Exists(App.Paths.Project.Build))
             Directory.CreateDirectory(App.Paths.Project.Build);
@@ -232,7 +232,7 @@ public static class VisualStudio
         var exe = App.Exe.MSBuild;
         exe.ArgumentList.Add("-nologo");
         exe.ArgumentList.Add("-v:minimal");
-        exe.ArgumentList.Add($"/p:Configuration={(config == App.BuildConfiguration.Debug ? "Debug" : "Release")}");
+        exe.ArgumentList.Add($"/p:Configuration={(config == Project.BuildConfiguration.Debug ? "Debug" : "Release")}");
         exe.ArgumentList.Add("/p:Platform=x64");
         exe.WorkingDirectory = App.Paths.Project.Build;
         var exitCode = await App.Run(exe); ;

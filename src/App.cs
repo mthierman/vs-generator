@@ -21,11 +21,6 @@ public static class App
           .InformationalVersion ?? "0.0.0";
     }
 
-    public enum BuildConfiguration
-    {
-        Debug,
-        Release
-    }
 
     public static class Exe
     {
@@ -44,7 +39,7 @@ public static class App
     public static class Commands
     {
         public static RootCommand Root = new($"C++ build tool\nversion {MetaData.Version}");
-        private static Argument<BuildConfiguration> Config = new("Config") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
+        private static Argument<Project.BuildConfiguration> Config = new("Config") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
         private static Argument<string[]> VSWhereArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> MSBuildArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> CLArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
@@ -111,7 +106,7 @@ public static class App
                 if (exitCode != 0)
                     return exitCode;
 
-                return await Run(new(parseResult.GetValue(Config) == BuildConfiguration.Debug ? Exe.Debug.FileName : Exe.Release.FileName));
+                return await Run(new(parseResult.GetValue(Config) == Project.BuildConfiguration.Debug ? Exe.Debug.FileName : Exe.Release.FileName));
             });
 
             SubCommand["publish"].SetAction(async parseResult =>
@@ -119,7 +114,7 @@ public static class App
                 if (!Directory.Exists(Paths.Project.Publish))
                     Directory.CreateDirectory(Paths.Project.Publish);
 
-                var build = await VisualStudio.Build(BuildConfiguration.Release);
+                var build = await VisualStudio.Build(Project.BuildConfiguration.Release);
 
                 var destination = Path.Combine(Paths.Project.Publish, MetaData.FileName);
 

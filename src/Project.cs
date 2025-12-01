@@ -4,6 +4,12 @@ namespace CXX;
 
 public static class Project
 {
+    public enum BuildConfiguration
+    {
+        Debug,
+        Release
+    }
+
     public sealed class Config
     {
         public string name { get; set; } = $"blank-project";

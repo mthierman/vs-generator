@@ -21,21 +21,6 @@ public static class App
           .InformationalVersion ?? "0.0.0";
     }
 
-
-    public static class Exe
-    {
-        public static ProcessStartInfo Debug => new() { FileName = Path.Combine(Paths.Project.Build, "debug", "app.exe") };
-        public static ProcessStartInfo Release => new() { FileName = Path.Combine(Paths.Project.Build, "release", "app.exe") };
-        public static ProcessStartInfo CXX => new() { FileName = Environment.ProcessPath };
-        public static ProcessStartInfo VSWhere => new() { FileName = VisualStudio.VSWherePath };
-        public static ProcessStartInfo MSBuild => new() { FileName = VisualStudio.MSBuildPath };
-        public static ProcessStartInfo CL => new() { FileName = VisualStudio.ClPath };
-        public static ProcessStartInfo RC => new() { FileName = VisualStudio.RcPath };
-        public static ProcessStartInfo Vcpkg => new() { FileName = VisualStudio.VcpkgPath };
-        public static ProcessStartInfo Ninja => new() { FileName = VisualStudio.NinjaPath };
-        public static ProcessStartInfo ClangFormat => new() { FileName = VisualStudio.ClangFormatPath };
-    }
-
     public static class Commands
     {
         public static RootCommand Root = new($"C++ build tool\nversion {MetaData.Version}");
@@ -106,7 +91,7 @@ public static class App
                 if (exitCode != 0)
                     return exitCode;
 
-                return await Run(new(parseResult.GetValue(Config) == Project.BuildConfiguration.Debug ? Exe.Debug.FileName : Exe.Release.FileName));
+                return await Run(new(parseResult.GetValue(Config) == Project.BuildConfiguration.Debug ? Project.Exe.Debug.FileName : Project.Exe.Release.FileName));
             });
 
             SubCommand["publish"].SetAction(async parseResult =>
@@ -121,7 +106,7 @@ public static class App
                 if (File.Exists(destination))
                     File.Delete(destination);
 
-                File.Copy(Exe.Release.FileName, destination);
+                File.Copy(Project.Exe.Release.FileName, destination);
 
                 Print.Err($"File ({MetaData.FileName}) copied: {destination}", ConsoleColor.Green);
 
@@ -231,7 +216,7 @@ public static class App
             new JsonSerializerOptions { WriteIndented = true }),
             ConsoleColor.DarkGreen);
 
-        var vcpkgProcessInfo = Exe.Vcpkg;
+        var vcpkgProcessInfo = Project.Exe.Vcpkg;
         vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
         vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
         await Run(vcpkgProcessInfo, "new", "--application");
@@ -300,7 +285,7 @@ auto wmain() -> int {
 
     public static async Task<int> InstallVcpkg()
     {
-        var processInfo = Exe.Vcpkg;
+        var processInfo = Project.Exe.Vcpkg;
         processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
         processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
         return await Run(processInfo, "install");

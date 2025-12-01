@@ -229,7 +229,7 @@ public static class VisualStudio
         if (string.IsNullOrWhiteSpace(MSBuildPath))
             throw new InvalidOperationException("MSBuild.exe not found");
 
-        var exe = App.Exe.MSBuild;
+        var exe = Project.Exe.MSBuild;
         exe.ArgumentList.Add("-nologo");
         exe.ArgumentList.Add("-v:minimal");
         exe.ArgumentList.Add($"/p:Configuration={(config == Project.BuildConfiguration.Debug ? "Debug" : "Release")}");

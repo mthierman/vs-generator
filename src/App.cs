@@ -272,28 +272,22 @@ public static class App
             new JsonSerializerOptions { WriteIndented = true }),
             ConsoleColor.DarkGreen);
 
-        // // Write manifest.json
-        // var json = JsonSerializer.Serialize(config, ConfigManager.Options);
-        // await File.WriteAllTextAsync(Paths.Project.Manifest, json);
+        var vcpkgProcessInfo = Exe.Vcpkg;
+        vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+        vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+        await Run(vcpkgProcessInfo, "new", "--application");
 
-        // Run vcpkg new
-        // var processInfo = Exe.Vcpkg;
-        // processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-        // processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-        // await Run(processInfo, "new", "--application");
+        await File.WriteAllTextAsync(
+        Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"),
+        @"
+#include <print>
 
-        // Create default src/app.cpp
-        //         await File.WriteAllTextAsync(
-        //             Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"),
-        //             @"
-        // #include <print>
-
-        // auto wmain() -> int {
-        //     std::println(""Hello, World!"");
-        //     return 0;
-        // }
-        // ".Trim()
-        //         );
+auto wmain() -> int {
+    std::println(""Hello, World!"");
+    return 0;
+}
+".Trim()
+        );
 
         return 0;
     }
@@ -375,7 +369,7 @@ public static class App
 
     public static class Paths
     {
-        public static readonly string ManifestFileName = "cxx.json";
+        public static readonly string ManifestFileName = "cxx.jsonc";
         public static readonly string AppLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "cxx");
         public static readonly string AppRoaming = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "cxx");
 

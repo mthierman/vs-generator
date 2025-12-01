@@ -23,24 +23,25 @@ public static class App
 
     public sealed class ProjectConfig
     {
-        public static string name { get; set; } = $"{MetaData.Name}-project";
-        public static string version { get; set; } = "0.0.0";
+        public string name { get; set; } = $"{MetaData.Name}-project";
+        public string version { get; set; } = "0.0.0";
     }
 
     public static class ConfigManager
     {
-        private static readonly JsonSerializerOptions Options = new()
+        public static readonly JsonSerializerOptions Options = new()
         {
             WriteIndented = true,
-            AllowTrailingCommas = true // optional
+            AllowTrailingCommas = true,
+            ReadCommentHandling = JsonCommentHandling.Skip
         };
 
-        public static ProjectConfig Load()
+        public static ProjectConfig Load(string path)
         {
             if (!File.Exists(Paths.Project.Manifest))
             {
                 var cfg = new ProjectConfig();
-                Save(cfg);
+                Save(cfg, path);
                 return cfg;
             }
 
@@ -49,10 +50,10 @@ public static class App
                    ?? new ProjectConfig();
         }
 
-        public static void Save(ProjectConfig config)
+        public static void Save(ProjectConfig config, string path)
         {
             var json = JsonSerializer.Serialize(config, Options);
-            File.WriteAllText(Paths.Project.Manifest, json);
+            File.WriteAllText(path, json);
         }
     }
 
@@ -247,45 +248,52 @@ public static class App
 
     public static async Task<int> NewProject()
     {
-        // var manifestFile = Path.Combine(Environment.CurrentDirectory, Paths.ManifestFileName);
+        var manifestFile = Path.Combine(Environment.CurrentDirectory, Paths.ManifestFileName);
 
-        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() || File.Exists(Paths.Project.Manifest))
+        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() ||
+            File.Exists(manifestFile))
         {
             Print.Err($"Directory was not empty.", ConsoleColor.Red);
-            await PrintHelp();
 
             return 1;
         }
 
-        var json = JsonSerializer.Serialize(new
+        var config = new ProjectConfig
         {
-            ProjectConfig.name,
-            ProjectConfig.version
-        }, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
+            name = $"{MetaData.Name}-project",
+            version = "0.0.0"
+        };
+
+        ConfigManager.Save(config, manifestFile);
 
         Print.Err($"Generated new {MetaData.Name} project", ConsoleColor.Green);
         Console.Error.WriteLine();
-        Print.Err(json, ConsoleColor.DarkGreen);
+        Print.Err(JsonSerializer.Serialize(config,
+            new JsonSerializerOptions { WriteIndented = true }),
+            ConsoleColor.DarkGreen);
 
-        await File.WriteAllTextAsync(Paths.Project.Manifest, json);
+        // // Write manifest.json
+        // var json = JsonSerializer.Serialize(config, ConfigManager.Options);
+        // await File.WriteAllTextAsync(Paths.Project.Manifest, json);
 
-        var processInfo = Exe.Vcpkg;
-        processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-        processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-        await Run(processInfo, "new", "--application");
+        // Run vcpkg new
+        // var processInfo = Exe.Vcpkg;
+        // processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+        // processInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+        // await Run(processInfo, "new", "--application");
 
-        await File.WriteAllTextAsync(Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"), @"
-                #include <print>
+        // Create default src/app.cpp
+        //         await File.WriteAllTextAsync(
+        //             Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"),
+        //             @"
+        // #include <print>
 
-                auto wmain() -> int {
-                    std::println(""Hello, World!"");
-
-                    return 0;
-                }
-            ".Trim());
+        // auto wmain() -> int {
+        //     std::println(""Hello, World!"");
+        //     return 0;
+        // }
+        // ".Trim()
+        //         );
 
         return 0;
     }
@@ -367,7 +375,7 @@ public static class App
 
     public static class Paths
     {
-        public static readonly string ManifestFileName = "cxx.jsonc";
+        public static readonly string ManifestFileName = "cxx.json";
         public static readonly string AppLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "cxx");
         public static readonly string AppRoaming = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "cxx");
 

@@ -247,9 +247,9 @@ public static class App
 
     public static async Task<int> NewProject()
     {
-        var manifestFile = Path.Combine(Environment.CurrentDirectory, Paths.ManifestFileName);
+        // var manifestFile = Path.Combine(Environment.CurrentDirectory, Paths.ManifestFileName);
 
-        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() || File.Exists(manifestFile))
+        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() || File.Exists(Paths.Project.Manifest))
         {
             Print.Err($"Directory was not empty.", ConsoleColor.Red);
             await PrintHelp();
@@ -270,7 +270,7 @@ public static class App
         Console.Error.WriteLine();
         Print.Err(json, ConsoleColor.DarkGreen);
 
-        await File.WriteAllTextAsync(manifestFile, json);
+        await File.WriteAllTextAsync(Paths.Project.Manifest, json);
 
         var processInfo = Exe.Vcpkg;
         processInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";

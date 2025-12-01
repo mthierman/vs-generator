@@ -259,8 +259,8 @@ public static class App
 
         var json = JsonSerializer.Serialize(new
         {
-            Config.name,
-            Config.version
+            ProjectConfig.name,
+            ProjectConfig.version
         }, new JsonSerializerOptions
         {
             WriteIndented = true

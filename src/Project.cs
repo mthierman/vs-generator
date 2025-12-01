@@ -57,4 +57,50 @@ public static class Project
         var json = JsonSerializer.Serialize(config, Options);
         File.WriteAllText(path, json);
     }
+
+    public static async Task<int> New()
+    {
+        var manifestFile = Path.Combine(Environment.CurrentDirectory, App.Paths.ManifestFileName);
+
+        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() ||
+            File.Exists(manifestFile))
+        {
+            App.Print.Err($"Directory was not empty.", ConsoleColor.Red);
+
+            return 1;
+        }
+
+        var config = new Config
+        {
+            name = $"{App.MetaData.Name}-project",
+            version = "0.0.0"
+        };
+
+        Save(config, manifestFile);
+
+        App.Print.Err($"Generated new {App.MetaData.Name} project", ConsoleColor.Green);
+        Console.Error.WriteLine();
+        App.Print.Err(JsonSerializer.Serialize(config,
+            new JsonSerializerOptions { WriteIndented = true }),
+            ConsoleColor.DarkGreen);
+
+        var vcpkgProcessInfo = Exe.Vcpkg;
+        vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+        vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+        await App.Run(vcpkgProcessInfo, "new", "--application");
+
+        await File.WriteAllTextAsync(
+        Path.Combine(Directory.CreateDirectory(App.Paths.Project.Src).FullName, "app.cpp"),
+        @"
+#include <print>
+
+auto wmain() -> int {
+    std::println(""Hello, World!"");
+    return 0;
+}
+".Trim()
+        );
+
+        return 0;
+    }
 }

@@ -61,7 +61,7 @@ public static class App
 
             SubCommand["new"].SetAction(async parseResult =>
             {
-                return await NewProject();
+                return await Project.New();
             });
 
             SubCommand["install"].SetAction(async parseResult =>
@@ -190,51 +190,7 @@ public static class App
         }
     }
 
-    public static async Task<int> NewProject()
-    {
-        var manifestFile = Path.Combine(Environment.CurrentDirectory, Paths.ManifestFileName);
 
-        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() ||
-            File.Exists(manifestFile))
-        {
-            Print.Err($"Directory was not empty.", ConsoleColor.Red);
-
-            return 1;
-        }
-
-        var config = new Project.Config
-        {
-            name = $"{MetaData.Name}-project",
-            version = "0.0.0"
-        };
-
-        Project.Save(config, manifestFile);
-
-        Print.Err($"Generated new {MetaData.Name} project", ConsoleColor.Green);
-        Console.Error.WriteLine();
-        Print.Err(JsonSerializer.Serialize(config,
-            new JsonSerializerOptions { WriteIndented = true }),
-            ConsoleColor.DarkGreen);
-
-        var vcpkgProcessInfo = Project.Exe.Vcpkg;
-        vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-        vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-        await Run(vcpkgProcessInfo, "new", "--application");
-
-        await File.WriteAllTextAsync(
-        Path.Combine(Directory.CreateDirectory(Paths.Project.Src).FullName, "app.cpp"),
-        @"
-#include <print>
-
-auto wmain() -> int {
-    std::println(""Hello, World!"");
-    return 0;
-}
-".Trim()
-        );
-
-        return 0;
-    }
 
     public static async Task<int> PrintHelp()
     {

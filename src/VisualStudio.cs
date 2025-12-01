@@ -542,7 +542,7 @@ public static class VisualStudio
 
         project.Save(App.Paths.Project.ProjectFile);
 
-        App.Print.Err("Generation successful.", ConsoleColor.Green);
+        Print.Err("Generation successful.", ConsoleColor.Green);
 
         return 0;
     }

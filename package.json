@@ -6,6 +6,7 @@
         "build": "dotnet build -c Release"
     },
     "devDependencies": {
+        "oxfmt": "^0.41.0",
         "prettier": "^3.8.1"
     }
 }

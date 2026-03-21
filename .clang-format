@@ -1,13 +1,2 @@
 BasedOnStyle: WebKit
-AlignAfterOpenBracket: Align
-BinPackArguments: false
-BinPackParameters: OnePerLine
-BreakBeforeBraces: Attach
-BreakConstructorInitializers: BeforeColon
 ColumnLimit: 100
-FixNamespaceComments: true
-IndentCaseLabels: true
-LambdaBodyIndentation: OuterScope
-PackConstructorInitializers: Never
-SortIncludes:
-  Enabled: false

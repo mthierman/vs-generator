@@ -9,8 +9,8 @@
         {
             "files": ["*.yml", "*.yaml", ".clang-*"],
             "options": {
-                "tabWidth": 2
-            }
-        }
-    ]
+                "tabWidth": 2,
+            },
+        },
+    ],
 }

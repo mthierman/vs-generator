@@ -2,6 +2,9 @@
     "name": "cxx",
     "private": true,
     "packageManager": "pnpm@10.22.0",
+    "scripts": {
+        "build": "dotnet build -c Release"
+    },
     "devDependencies": {
         "prettier": "^3.6.2"
     }

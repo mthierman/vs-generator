@@ -1,6 +1,8 @@
 {
     "name": "cxx",
+    "version": "0.0.0",
     "private": true,
+    "type": "module",
     "scripts": {
         "build": "dotnet build -c Release",
         "fmt": "oxfmt",

@@ -1,13 +1,13 @@
 {
+    "name": "cxx",
+    "private": true,
     "scripts": {
         "build": "dotnet build -c Release",
         "fmt": "oxfmt",
         "fmt:check": "oxfmt --check"
     },
-    "name": "cxx",
-    "private": true,
-    "packageManager": "pnpm@10.32.1",
     "devDependencies": {
         "oxfmt": "^0.41.0"
-    }
+    },
+    "packageManager": "npm@11.12.0"
 }

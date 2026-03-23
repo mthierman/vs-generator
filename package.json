@@ -9,7 +9,9 @@
         "fmt:check": "oxfmt --check"
     },
     "devDependencies": {
-        "oxfmt": "^0.41.0"
+        "@types/node": "^25.5.0",
+        "oxfmt": "^0.41.0",
+        "typescript": "^6.0.2"
     },
-    "packageManager": "npm@11.12.0"
+    "packageManager": "pnpm@10.32.1"
 }

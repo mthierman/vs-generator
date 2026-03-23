@@ -94,8 +94,23 @@ public static class Project
     public static string GetBinaryFile(BuildConfiguration config) =>
         Path.Combine(GetOutputDirectory(config), $"{GetOutputBaseName()}.{(IsLibrary(Current) ? "lib" : "exe")}");
 
+    public static string GetCpsPrefixDirectory(BuildConfiguration config) =>
+        GetOutputDirectory(config);
+
+    public static string GetCpsIncludeDirectory(BuildConfiguration config) =>
+        Path.Combine(GetCpsPrefixDirectory(config), "include");
+
+    public static string GetCpsLibraryDirectory(BuildConfiguration config) =>
+        Path.Combine(GetCpsPrefixDirectory(config), "lib");
+
+    public static string GetPackagedBinaryFile(BuildConfiguration config) =>
+        Path.Combine(GetCpsLibraryDirectory(config), Path.GetFileName(GetBinaryFile(config)));
+
+    public static string GetCpsDirectory(BuildConfiguration config) =>
+        Path.Combine(GetCpsPrefixDirectory(config), "cps");
+
     public static string GetCpsFile(BuildConfiguration config) =>
-        Path.Combine(GetOutputDirectory(config), $"{GetOutputBaseName()}.cps");
+        Path.Combine(GetCpsDirectory(config), $"{GetOutputBaseName()}.cps");
 
     public static async Task<int> New(string projectType = ProjectTypes.Exe)
     {

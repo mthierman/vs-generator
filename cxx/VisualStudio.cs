@@ -369,6 +369,43 @@ public static class VisualStudio
         }
     }
 
+    private static void CopyDirectoryContents(string sourceDirectory, string destinationDirectory)
+    {
+        Directory.CreateDirectory(destinationDirectory);
+
+        foreach (var directory in Directory.GetDirectories(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDirectory, directory);
+            Directory.CreateDirectory(Path.Combine(destinationDirectory, relativePath));
+        }
+
+        foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDirectory, file);
+            var destinationFile = Path.Combine(destinationDirectory, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
+            File.Copy(file, destinationFile, true);
+        }
+    }
+
+    private static void StageCpsPackage(Project.BuildConfiguration config, string binaryFile)
+    {
+        var packagedBinaryFile = Project.GetPackagedBinaryFile(config);
+        Directory.CreateDirectory(Path.GetDirectoryName(packagedBinaryFile)!);
+        File.Copy(binaryFile, packagedBinaryFile, true);
+
+        var packagedIncludeDirectory = Project.GetCpsIncludeDirectory(config);
+        if (Directory.Exists(packagedIncludeDirectory))
+            Directory.Delete(packagedIncludeDirectory, true);
+
+        if (Directory.Exists(Project.Paths.Include))
+            CopyDirectoryContents(Project.Paths.Include, packagedIncludeDirectory);
+        else
+            Directory.CreateDirectory(packagedIncludeDirectory);
+
+        Directory.CreateDirectory(Project.GetCpsDirectory(config));
+    }
+
     private static async Task ExportCpsAsync(Project.BuildConfiguration config)
     {
         var projectConfig = Project.Current;
@@ -376,6 +413,8 @@ public static class VisualStudio
 
         if (!File.Exists(binaryFile))
             return;
+
+        StageCpsPackage(config, binaryFile);
 
         var package = new Cps.Package
         {
@@ -395,7 +434,7 @@ public static class VisualStudio
                         CpsIncludeDirectory
                     }),
                     LinkLanguages = new List<string> { "cpp" },
-                    Location = $"{CpsLibraryDirectory}/{Path.GetFileName(binaryFile)}"
+                    Location = $"{CpsLibraryDirectory}/{Path.GetFileName(Project.GetPackagedBinaryFile(config))}"
                 }
             }
         };

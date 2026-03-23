@@ -7,6 +7,11 @@ public static class Project
 {
     public static readonly string AppLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "cxx");
     public static readonly string AppRoaming = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "cxx");
+    public static class ProjectTypes
+    {
+        public const string Exe = "exe";
+        public const string Lib = "lib";
+    }
 
     public static class Manifest
     {
@@ -23,6 +28,7 @@ public static class Project
     {
         public string name { get; set; } = $"blank-project";
         public string version { get; set; } = "0.0.0";
+        public string type { get; set; } = ProjectTypes.Exe;
     }
 
     public static readonly JsonSerializerOptions Options = new()
@@ -36,23 +42,39 @@ public static class Project
     {
         if (!File.Exists(path))
         {
-            var config = new Config();
-            Save(config, path);
-            return config;
+            var newConfig = new Config();
+            Save(newConfig, path);
+            return newConfig;
         }
 
         var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<Config>(json, Options)
+        var config = JsonSerializer.Deserialize<Config>(json, Options)
                ?? new Config();
+        config.type = NormalizeType(config.type);
+        return config;
     }
 
     public static void Save(Config config, string path)
     {
+        config.type = NormalizeType(config.type);
         var json = JsonSerializer.Serialize(config, Options);
         File.WriteAllText(path, json);
     }
 
-    public static async Task<int> New()
+    public static string NormalizeType(string? projectType) =>
+        string.Equals(projectType, ProjectTypes.Lib, StringComparison.OrdinalIgnoreCase)
+            ? ProjectTypes.Lib
+            : ProjectTypes.Exe;
+
+    public static bool IsLibrary(string? projectType) =>
+        string.Equals(NormalizeType(projectType), ProjectTypes.Lib, StringComparison.Ordinal);
+
+    public static bool IsLibrary(Config config) => IsLibrary(config.type);
+
+    public static string GetConfigurationType(Config config) =>
+        IsLibrary(config) ? "StaticLibrary" : "Application";
+
+    public static async Task<int> New(string projectType = ProjectTypes.Exe)
     {
         var manifestFile = Path.Combine(Environment.CurrentDirectory, Manifest.Filename);
         var vcpkgManifestFile = Path.Combine(Environment.CurrentDirectory, "vcpkg.json");
@@ -64,12 +86,19 @@ public static class Project
         var srcExists = Directory.Exists(srcDirectory);
         var created = new List<string>();
         var skipped = new List<string>();
+        var requestedProjectType = NormalizeType(projectType);
+        var effectiveProjectType = requestedProjectType;
 
-        var config = new Config
-        {
-            name = $"{App.MetaData.Name}-project",
-            version = "0.0.0"
-        };
+        var config = manifestExists
+            ? Load(manifestFile)
+            : new Config
+            {
+                name = $"{App.MetaData.Name}-project",
+                version = "0.0.0",
+                type = requestedProjectType
+            };
+
+        effectiveProjectType = NormalizeType(config.type);
 
         if (!manifestExists)
         {
@@ -79,6 +108,9 @@ public static class Project
         else
         {
             skipped.Add(Manifest.Filename);
+
+            if (!string.Equals(requestedProjectType, effectiveProjectType, StringComparison.Ordinal))
+                Print.Err($"Using existing project type '{effectiveProjectType}' from {Manifest.Filename}.", ConsoleColor.DarkYellow);
         }
 
         if (!vcpkgExists)
@@ -86,7 +118,10 @@ public static class Project
             var vcpkgProcessInfo = Exe.Vcpkg;
             vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
             vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-            var vcpkgExitCode = await App.Run(vcpkgProcessInfo, "new", "--application");
+            var vcpkgArgs = IsLibrary(effectiveProjectType)
+                ? new[] { "new", "--name", config.name, "--version", config.version }
+                : new[] { "new", "--application" };
+            var vcpkgExitCode = await App.Run(vcpkgProcessInfo, vcpkgArgs);
 
             if (vcpkgExitCode != 0)
                 return vcpkgExitCode;
@@ -100,11 +135,18 @@ public static class Project
 
         if (!srcExists)
         {
-            var appFile = Path.Combine(Directory.CreateDirectory(srcDirectory).FullName, "app.cpp");
+            var sourceFile = IsLibrary(effectiveProjectType) ? "lib.cpp" : "app.cpp";
+            var appFile = Path.Combine(Directory.CreateDirectory(srcDirectory).FullName, sourceFile);
 
             await File.WriteAllTextAsync(
                 appFile,
-                @"
+                IsLibrary(effectiveProjectType)
+                    ? @"
+auto library_entry_point() -> int {
+    return 0;
+}
+".Trim()
+                    : @"
 #include <print>
 
 auto wmain() -> int {
@@ -114,14 +156,14 @@ auto wmain() -> int {
 ".Trim()
             );
 
-            created.Add("src/app.cpp");
+            created.Add($"src/{sourceFile}");
         }
         else
         {
             skipped.Add("src");
         }
 
-        Print.Err($"Initialized {App.MetaData.Name} project", ConsoleColor.Green);
+        Print.Err($"Initialized {App.MetaData.Name} {effectiveProjectType} project", ConsoleColor.Green);
 
         if (!manifestExists)
         {
@@ -139,6 +181,8 @@ auto wmain() -> int {
 
         return 0;
     }
+
+    public static Config Current => Load(Paths.Manifest);
 
     public static ProjectPaths Paths => _paths.Value;
     private static readonly Lazy<ProjectPaths> _paths = new(() =>

@@ -379,6 +379,9 @@ public static class VisualStudio
     {
         await GenerateSolution();
 
+        var projectConfig = Project.Current;
+        var isLibrary = Project.IsLibrary(projectConfig);
+        var configurationType = Project.GetConfigurationType(projectConfig);
         var project = ProjectRootElement.Create();
         project.DefaultTargets = "Build";
         project.ToolsVersion = null;
@@ -409,7 +412,7 @@ public static class VisualStudio
                 group.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
                 group.Label = "Configuration";
 
-                group.AddProperty("ConfigurationType", "Application");
+                group.AddProperty("ConfigurationType", configurationType);
                 group.AddProperty("UseDebugLibraries", config == "Debug" ? "true" : "false");
                 group.AddProperty("PlatformToolset", "v145");
                 group.AddProperty("CharacterSet", "Unicode");
@@ -483,14 +486,23 @@ public static class VisualStudio
                 cl_compile.AddMetadata("BuildStlModules", "true", false);
 
                 // PreprocessorDefinitions
-                string preprocessor = config switch
-                {
-                    "Debug" when platform == "Win32" => "WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)",
-                    "Release" when platform == "Win32" => "WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
-                    "Debug" when platform == "x64" => "_DEBUG;_CONSOLE;%(PreprocessorDefinitions)",
-                    "Release" when platform == "x64" => "NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
-                    _ => "%(PreprocessorDefinitions)"
-                };
+                string preprocessor = isLibrary
+                    ? config switch
+                    {
+                        "Debug" when platform == "Win32" => "WIN32;_DEBUG;%(PreprocessorDefinitions)",
+                        "Release" when platform == "Win32" => "WIN32;NDEBUG;%(PreprocessorDefinitions)",
+                        "Debug" when platform == "x64" => "_DEBUG;%(PreprocessorDefinitions)",
+                        "Release" when platform == "x64" => "NDEBUG;%(PreprocessorDefinitions)",
+                        _ => "%(PreprocessorDefinitions)"
+                    }
+                    : config switch
+                    {
+                        "Debug" when platform == "Win32" => "WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)",
+                        "Release" when platform == "Win32" => "WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
+                        "Debug" when platform == "x64" => "_DEBUG;_CONSOLE;%(PreprocessorDefinitions)",
+                        "Release" when platform == "x64" => "NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
+                        _ => "%(PreprocessorDefinitions)"
+                    };
                 cl_compile.AddMetadata("PreprocessorDefinitions", preprocessor, false);
 
                 // Release-specific flags
@@ -500,10 +512,13 @@ public static class VisualStudio
                     cl_compile.AddMetadata("IntrinsicFunctions", "true", false);
                 }
 
-                // ----- Link -----
-                var link = projectSettings.AddItemDefinition("Link");
-                link.AddMetadata("SubSystem", "Console", false);
-                link.AddMetadata("GenerateDebugInformation", "true", false);
+                if (!isLibrary)
+                {
+                    // ----- Link -----
+                    var link = projectSettings.AddItemDefinition("Link");
+                    link.AddMetadata("SubSystem", "Console", false);
+                    link.AddMetadata("GenerateDebugInformation", "true", false);
+                }
             }
         }
 
@@ -525,9 +540,9 @@ public static class VisualStudio
         vcpkg.AddProperty("VcpkgUseMD", "true");
 
         // ----- 15. Add sources from "src" folder -----
-        var sourceFiles = Directory.GetFiles(Project.Paths.Src, "*.cpp");
-        var moduleFiles = Directory.GetFiles(Project.Paths.Src, "*.ixx");
-        var headerFiles = Directory.GetFiles(Project.Paths.Src, "*.h");
+        var sourceFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.cpp") : Array.Empty<string>();
+        var moduleFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.ixx") : Array.Empty<string>();
+        var headerFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.h") : Array.Empty<string>();
 
         var sources = project.AddItemGroup();
 

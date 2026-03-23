@@ -413,14 +413,10 @@ public static class VisualStudio
         {
             Name = projectConfig.name,
             ConfigurationName = config.ToString(),
-            Version = projectConfig.version,
-            CpsVersion = "0.14.1",
-            CpsPath = CpsPathPlaceholder,
             Components = new Dictionary<string, Cps.Component>
             {
                 [projectConfig.name] = new Cps.Component
                 {
-                    Type = "archive",
                     CompileFeatures = new List<string> { CppCompileFeature },
                     Includes = Cps.LanguageStringList.FromValues(new List<string>
                     {

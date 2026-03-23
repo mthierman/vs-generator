@@ -168,14 +168,15 @@ public static class Cps
     public static readonly JsonSerializerOptions ReadOptions = CreateReadOptions();
     public static readonly JsonSerializerOptions WriteOptions = CreateWriteOptions();
 
-    public static Package Parse(string json)
+    public static Package Parse(string json, string? filePath = null)
     {
         try
         {
             var package = JsonSerializer.Deserialize<Package>(json, ReadOptions)
                 ?? throw new InvalidDataException("failed to parse CPS package");
 
-            ValidatePackage(package);
+            var configurationSpecificFile = filePath is not null && Path.GetFileName(filePath).Contains("@");
+            ValidatePackage(package, configurationSpecificFile);
             return package;
         }
         catch (JsonException exception)
@@ -188,7 +189,7 @@ public static class Cps
     {
         try
         {
-            return Parse(File.ReadAllText(path));
+            return Parse(File.ReadAllText(path), path);
         }
         catch (InvalidDataException)
         {
@@ -204,7 +205,7 @@ public static class Cps
     {
         try
         {
-            return ParseMinimal(File.ReadAllText(path));
+            return ParseMinimal(File.ReadAllText(path), path);
         }
         catch (InvalidDataException)
         {
@@ -216,11 +217,11 @@ public static class Cps
         }
     }
 
-    public static Package ParseMinimal(string json)
+    public static Package ParseMinimal(string json, string? filePath = null)
     {
         try
         {
-            return CreateMinimalPackage(Parse(json));
+            return CreateMinimalPackage(Parse(json, filePath));
         }
         catch (InvalidDataException strictError)
         {
@@ -466,7 +467,7 @@ public static class Cps
             ValidateConfiguration(configuration);
     }
 
-    private static void ValidatePackage(Package package)
+    private static void ValidatePackage(Package package, bool configurationSpecificFile = false)
     {
         if (package.Name is null)
             throw new InvalidDataException("package is missing required `name`");
@@ -474,17 +475,10 @@ public static class Cps
         if (package.Components is null)
             throw new InvalidDataException("package is missing required `components`");
 
-        var configurationSpecificPackage = package.ConfigurationName is not null
-            && package.CompatVersion is null
-            && package.Configurations is null
-            && package.CpsPath is null
-            && package.CpsVersion is null
-            && package.DefaultComponents is null
-            && package.Platform is null
-            && package.Prefix is null
-            && package.RequiredPackages is null
-            && package.Version is null
-            && package.VersionSchema is null;
+        var configurationSpecificPackage = configurationSpecificFile || package.ConfigurationName is not null;
+
+        if (configurationSpecificPackage && package.ConfigurationName is null)
+            throw new InvalidDataException("configuration-specific CPS package is missing required `configuration`");
 
         if (configurationSpecificPackage)
         {

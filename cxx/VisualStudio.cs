@@ -8,6 +8,13 @@ namespace CXX;
 
 public static class VisualStudio
 {
+    private const string CpsPrefix = "@prefix@";
+    private const string CpsDirectory = $"{CpsPrefix}/cps";
+    private const string CpsIncludeDirectory = $"{CpsPrefix}/include";
+    private const string CpsLibraryDirectory = $"{CpsPrefix}/lib";
+    private const string CppLanguageStandard = "stdcpplatest";
+    private const string CppCompileFeature = "c++23";
+
     public static string? FindExeOnPath(string exeName)
     {
         var fileName = exeName + (OperatingSystem.IsWindows() && !exeName.EndsWith(".exe") ? ".exe" : "");
@@ -362,12 +369,9 @@ public static class VisualStudio
         }
     }
 
-    private static string NormalizePath(string path) => path.Replace('\\', '/');
-
     private static async Task ExportCpsAsync(Project.BuildConfiguration config)
     {
         var projectConfig = Project.Current;
-        var outputDirectory = Project.GetOutputDirectory(config);
         var binaryFile = Project.GetBinaryFile(config);
 
         if (!File.Exists(binaryFile))
@@ -376,23 +380,22 @@ public static class VisualStudio
         var package = new Cps.Package
         {
             Name = projectConfig.name,
+            ConfigurationName = config.ToString(),
             Version = projectConfig.version,
-            CompatVersion = projectConfig.version,
-            VersionSchema = "simple",
-            CpsVersion = "0.13.0",
-            Prefix = NormalizePath(outputDirectory),
-            DefaultComponents = new List<string> { projectConfig.name },
+            CpsVersion = "0.14.1",
+            CpsPath = CpsDirectory,
             Components = new Dictionary<string, Cps.Component>
             {
                 [projectConfig.name] = new Cps.Component
                 {
                     Type = "archive",
+                    CompileFeatures = new List<string> { CppCompileFeature },
                     Includes = Cps.LanguageStringList.FromValues(new List<string>
                     {
-                        NormalizePath(Path.GetRelativePath(outputDirectory, Project.Paths.Include))
+                        CpsIncludeDirectory
                     }),
-                    LinkLanguages = new List<string> { "c++" },
-                    LinkLocation = Path.GetFileName(binaryFile)
+                    LinkLanguages = new List<string> { "cpp" },
+                    Location = $"{CpsLibraryDirectory}/{Path.GetFileName(binaryFile)}"
                 }
             }
         };
@@ -523,7 +526,7 @@ public static class VisualStudio
                 cl_compile.AddMetadata("TreatWarningAsError", "true", false);
                 cl_compile.AddMetadata("SDLCheck", "true", false);
                 cl_compile.AddMetadata("ConformanceMode", "true", false);
-                cl_compile.AddMetadata("LanguageStandard", "stdcpplatest", false);
+                cl_compile.AddMetadata("LanguageStandard", CppLanguageStandard, false);
                 cl_compile.AddMetadata("LanguageStandard_C", "stdclatest", false);
                 cl_compile.AddMetadata("BuildStlModules", "true", false);
                 cl_compile.AddMetadata("AdditionalIncludeDirectories", @"$(ProjectDir)..\include;$(ProjectDir)..\src;%(AdditionalIncludeDirectories)", false);

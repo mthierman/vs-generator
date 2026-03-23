@@ -6,7 +6,7 @@ namespace CXX;
 
 public static class Cps
 {
-    private const string DefaultCpsVersion = "0.13.0";
+    private const string DefaultCpsVersion = "0.14.1";
 
     public sealed class Platform
     {
@@ -474,7 +474,17 @@ public static class Cps
         if (package.Components is null)
             throw new InvalidDataException("package is missing required `components`");
 
-        var configurationSpecificPackage = package.ConfigurationName is not null;
+        var configurationSpecificPackage = package.ConfigurationName is not null
+            && package.CompatVersion is null
+            && package.Configurations is null
+            && package.CpsPath is null
+            && package.CpsVersion is null
+            && package.DefaultComponents is null
+            && package.Platform is null
+            && package.Prefix is null
+            && package.RequiredPackages is null
+            && package.Version is null
+            && package.VersionSchema is null;
 
         if (configurationSpecificPackage)
         {

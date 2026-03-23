@@ -9,9 +9,8 @@ namespace CXX;
 public static class VisualStudio
 {
     private const string CpsPrefix = "@prefix@";
-    private const string CpsDirectory = $"{CpsPrefix}/cps";
+    private const string CpsPathPlaceholder = CpsPrefix;
     private const string CpsIncludeDirectory = $"{CpsPrefix}/include";
-    private const string CpsLibraryDirectory = $"{CpsPrefix}/lib";
     private const string CppLanguageStandard = "stdcpplatest";
     private const string CppCompileFeature = "c++23";
 
@@ -388,12 +387,8 @@ public static class VisualStudio
         }
     }
 
-    private static void StageCpsPackage(Project.BuildConfiguration config, string binaryFile)
+    private static void StageCpsIncludes(Project.BuildConfiguration config)
     {
-        var packagedBinaryFile = Project.GetPackagedBinaryFile(config);
-        Directory.CreateDirectory(Path.GetDirectoryName(packagedBinaryFile)!);
-        File.Copy(binaryFile, packagedBinaryFile, true);
-
         var packagedIncludeDirectory = Project.GetCpsIncludeDirectory(config);
         if (Directory.Exists(packagedIncludeDirectory))
             Directory.Delete(packagedIncludeDirectory, true);
@@ -402,8 +397,6 @@ public static class VisualStudio
             CopyDirectoryContents(Project.Paths.Include, packagedIncludeDirectory);
         else
             Directory.CreateDirectory(packagedIncludeDirectory);
-
-        Directory.CreateDirectory(Project.GetCpsDirectory(config));
     }
 
     private static async Task ExportCpsAsync(Project.BuildConfiguration config)
@@ -414,7 +407,7 @@ public static class VisualStudio
         if (!File.Exists(binaryFile))
             return;
 
-        StageCpsPackage(config, binaryFile);
+        StageCpsIncludes(config);
 
         var package = new Cps.Package
         {
@@ -422,7 +415,7 @@ public static class VisualStudio
             ConfigurationName = config.ToString(),
             Version = projectConfig.version,
             CpsVersion = "0.14.1",
-            CpsPath = CpsDirectory,
+            CpsPath = CpsPathPlaceholder,
             Components = new Dictionary<string, Cps.Component>
             {
                 [projectConfig.name] = new Cps.Component
@@ -434,7 +427,7 @@ public static class VisualStudio
                         CpsIncludeDirectory
                     }),
                     LinkLanguages = new List<string> { "cpp" },
-                    Location = $"{CpsLibraryDirectory}/{Path.GetFileName(Project.GetPackagedBinaryFile(config))}"
+                    Location = $"{CpsPrefix}/{Path.GetFileName(binaryFile)}"
                 }
             }
         };
@@ -450,7 +443,7 @@ public static class VisualStudio
         solutionModel.AddPlatform("x64");
         solutionModel.AddPlatform("x86");
 
-        var solutionProject = solutionModel.AddProject("app.vcxproj");
+        var solutionProject = solutionModel.AddProject(Path.GetFileName(Project.Paths.ProjectFile));
 
         solutionProject.Id = Guid.NewGuid();
 
@@ -479,7 +472,7 @@ public static class VisualStudio
         globals.AddProperty("VCProjectVersion", "18.0");
         globals.AddProperty("Keyword", "Win32Proj");
         globals.AddProperty("ProjectGuid", "{4985344b-071c-4114-a0bb-41d2b55773cd}");
-        globals.AddProperty("RootNamespace", "app");
+        globals.AddProperty("RootNamespace", projectConfig.name);
         globals.AddProperty("WindowsTargetPlatformVersion", "10.0");
         globals.AddProperty("UseMultiToolTask", "true");
         globals.AddProperty("EnforceProcessCountAcrossBuilds", "true");
@@ -503,6 +496,7 @@ public static class VisualStudio
                 group.AddProperty("EnableUnitySupport", "false");
                 group.AddProperty("IntDir", $@"$(SolutionDir)\{config.ToLowerInvariant()}\obj\");
                 group.AddProperty("OutDir", $@"$(SolutionDir)\{config.ToLowerInvariant()}\");
+                group.AddProperty("TargetName", Project.GetOutputBaseName());
             }
         }
 

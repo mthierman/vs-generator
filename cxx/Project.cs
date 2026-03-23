@@ -75,7 +75,7 @@ public static class Project
         IsLibrary(config) ? "StaticLibrary" : "Application";
 
     public static string GetOutputBaseName() =>
-        Path.GetFileNameWithoutExtension(Paths.ProjectFile);
+        Current.name;
 
     public static string GetPublicIncludeStem(Config config) => config.name;
 
@@ -100,17 +100,11 @@ public static class Project
     public static string GetCpsIncludeDirectory(BuildConfiguration config) =>
         Path.Combine(GetCpsPrefixDirectory(config), "include");
 
-    public static string GetCpsLibraryDirectory(BuildConfiguration config) =>
-        Path.Combine(GetCpsPrefixDirectory(config), "lib");
-
-    public static string GetPackagedBinaryFile(BuildConfiguration config) =>
-        Path.Combine(GetCpsLibraryDirectory(config), Path.GetFileName(GetBinaryFile(config)));
-
-    public static string GetCpsDirectory(BuildConfiguration config) =>
-        Path.Combine(GetCpsPrefixDirectory(config), "cps");
+    public static string GetCpsFileName(BuildConfiguration config) =>
+        $"{Current.name}@{(config == BuildConfiguration.Debug ? "debug" : "release")}.cps";
 
     public static string GetCpsFile(BuildConfiguration config) =>
-        Path.Combine(GetCpsDirectory(config), $"{GetOutputBaseName()}.cps");
+        Path.Combine(Paths.Build, GetCpsFileName(config));
 
     public static async Task<int> New(string projectType = ProjectTypes.Exe)
     {
@@ -279,17 +273,20 @@ auto wmain() -> int
         if (string.IsNullOrEmpty(root))
             throw new FileNotFoundException($"Manifest not found: {Project.Manifest.Filename}");
 
+        var manifest = Path.Combine(root, Project.Manifest.Filename);
+        var config = Load(manifest);
+
         return new(
             Root: root,
-            Manifest: Path.Combine(root, Project.Manifest.Filename),
+            Manifest: manifest,
             Src: Path.Combine(root, "src"),
             Include: Path.Combine(root, "include"),
             Build: Path.Combine(root, "build"),
             Debug: Path.Combine(root, "build", "debug"),
             Release: Path.Combine(root, "build", "release"),
             Publish: Path.Combine(root, "build", "publish"),
-            SolutionFile: Path.Combine(root, "build", "app.slnx"),
-            ProjectFile: Path.Combine(root, "build", "app.vcxproj"));
+            SolutionFile: Path.Combine(root, "build", $"{config.name}.slnx"),
+            ProjectFile: Path.Combine(root, "build", $"{config.name}.vcxproj"));
     });
 
     public sealed record ProjectPaths(
@@ -307,8 +304,8 @@ auto wmain() -> int
 
     public static class Exe
     {
-        public static ProcessStartInfo Debug => new() { FileName = Path.Combine(Paths.Build, "debug", "app.exe") };
-        public static ProcessStartInfo Release => new() { FileName = Path.Combine(Paths.Build, "release", "app.exe") };
+        public static ProcessStartInfo Debug => new() { FileName = GetBinaryFile(BuildConfiguration.Debug) };
+        public static ProcessStartInfo Release => new() { FileName = GetBinaryFile(BuildConfiguration.Release) };
         public static ProcessStartInfo CXX => new() { FileName = Environment.ProcessPath };
         public static ProcessStartInfo VSWhere => new() { FileName = VisualStudio.VSWherePath };
         public static ProcessStartInfo MSBuild => new() { FileName = VisualStudio.MSBuildPath };

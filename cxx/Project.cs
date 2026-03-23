@@ -55,14 +55,15 @@ public static class Project
     public static async Task<int> New()
     {
         var manifestFile = Path.Combine(Environment.CurrentDirectory, Manifest.Filename);
+        var vcpkgManifestFile = Path.Combine(Environment.CurrentDirectory, "vcpkg.json");
+        var vcpkgConfigurationFile = Path.Combine(Environment.CurrentDirectory, "vcpkg-configuration.json");
+        var srcDirectory = Path.Combine(Environment.CurrentDirectory, "src");
 
-        if (Directory.EnumerateFileSystemEntries(Environment.CurrentDirectory).Any() ||
-            File.Exists(manifestFile))
-        {
-            Print.Err($"Directory was not empty.", ConsoleColor.Red);
-
-            return 1;
-        }
+        var manifestExists = File.Exists(manifestFile);
+        var vcpkgExists = File.Exists(vcpkgManifestFile) || File.Exists(vcpkgConfigurationFile);
+        var srcExists = Directory.Exists(srcDirectory);
+        var created = new List<string>();
+        var skipped = new List<string>();
 
         var config = new Config
         {
@@ -70,22 +71,40 @@ public static class Project
             version = "0.0.0"
         };
 
-        Save(config, manifestFile);
+        if (!manifestExists)
+        {
+            Save(config, manifestFile);
+            created.Add(Manifest.Filename);
+        }
+        else
+        {
+            skipped.Add(Manifest.Filename);
+        }
 
-        Print.Err($"Generated new {App.MetaData.Name} project", ConsoleColor.Green);
-        Console.Error.WriteLine();
-        Print.Err(JsonSerializer.Serialize(config,
-            new JsonSerializerOptions { WriteIndented = true }),
-            ConsoleColor.DarkGreen);
+        if (!vcpkgExists)
+        {
+            var vcpkgProcessInfo = Exe.Vcpkg;
+            vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
+            vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
+            var vcpkgExitCode = await App.Run(vcpkgProcessInfo, "new", "--application");
 
-        var vcpkgProcessInfo = Exe.Vcpkg;
-        vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
-        vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-        await App.Run(vcpkgProcessInfo, "new", "--application");
+            if (vcpkgExitCode != 0)
+                return vcpkgExitCode;
 
-        await File.WriteAllTextAsync(
-        Path.Combine(Directory.CreateDirectory(Paths.Src).FullName, "app.cpp"),
-        @"
+            created.Add("vcpkg.json/vcpkg-configuration.json");
+        }
+        else
+        {
+            skipped.Add("vcpkg.json/vcpkg-configuration.json");
+        }
+
+        if (!srcExists)
+        {
+            var appFile = Path.Combine(Directory.CreateDirectory(srcDirectory).FullName, "app.cpp");
+
+            await File.WriteAllTextAsync(
+                appFile,
+                @"
 #include <print>
 
 auto wmain() -> int {
@@ -93,7 +112,30 @@ auto wmain() -> int {
     return 0;
 }
 ".Trim()
-        );
+            );
+
+            created.Add("src/app.cpp");
+        }
+        else
+        {
+            skipped.Add("src");
+        }
+
+        Print.Err($"Initialized {App.MetaData.Name} project", ConsoleColor.Green);
+
+        if (!manifestExists)
+        {
+            Console.Error.WriteLine();
+            Print.Err(JsonSerializer.Serialize(config,
+                new JsonSerializerOptions { WriteIndented = true }),
+                ConsoleColor.DarkGreen);
+        }
+
+        if (created.Count > 0)
+            Print.Err($"Created: {string.Join(", ", created)}", ConsoleColor.DarkGreen);
+
+        if (skipped.Count > 0)
+            Print.Err($"Skipped existing: {string.Join(", ", skipped)}", ConsoleColor.DarkYellow);
 
         return 0;
     }

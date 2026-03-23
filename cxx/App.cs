@@ -31,6 +31,7 @@ public static class App
         private static Argument<string[]> NinjaArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> NugetArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> VcpkgArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
+        private static Argument<string> CpsFile = new("File") { Description = "Path to the .cps file to parse" };
         private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
         {
             ["new"] = new Command("new", "New project"),
@@ -49,6 +50,7 @@ public static class App
             ["ninja"] = new Command("ninja") { NinjaArgs },
             ["nuget"] = new Command("nuget") { NugetArgs },
             ["vcpkg"] = new Command("vcpkg") { VcpkgArgs },
+            ["cps"] = new Command("cps", "Parse and print a CPS file") { CpsFile },
         };
 
         static Commands()
@@ -185,6 +187,21 @@ public static class App
                     return 1;
 
                 return await Run(new(VisualStudio.VcpkgPath), parseResult.GetValue(VcpkgArgs));
+            });
+
+            SubCommand["cps"].SetAction(async parseResult =>
+            {
+                try
+                {
+                    var package = Cps.ParseMinimalFile(parseResult.GetValue(CpsFile)!);
+                    Print.Out(Cps.Serialize(package));
+                    return 0;
+                }
+                catch (InvalidDataException exception)
+                {
+                    Print.Err(exception.Message, ConsoleColor.Red);
+                    return 1;
+                }
             });
         }
     }

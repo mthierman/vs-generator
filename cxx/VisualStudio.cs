@@ -235,8 +235,11 @@ public static class VisualStudio
         exe.ArgumentList.Add($"/p:Configuration={(config == Project.BuildConfiguration.Debug ? "Debug" : "Release")}");
         exe.ArgumentList.Add("/p:Platform=x64");
         exe.WorkingDirectory = Project.Paths.Build;
-        var exitCode = await App.Run(exe); ;
+        var exitCode = await App.Run(exe);
         Console.Error.WriteLine();
+
+        if (exitCode == 0 && Project.IsLibrary(Project.Current))
+            await ExportCpsAsync(config);
 
         return exitCode;
     }
@@ -357,6 +360,45 @@ public static class VisualStudio
         {
             startInfo.Environment[kvp.Key] = kvp.Value;
         }
+    }
+
+    private static string NormalizePath(string path) => path.Replace('\\', '/');
+
+    private static async Task ExportCpsAsync(Project.BuildConfiguration config)
+    {
+        var projectConfig = Project.Current;
+        var outputDirectory = Project.GetOutputDirectory(config);
+        var binaryFile = Project.GetBinaryFile(config);
+
+        if (!File.Exists(binaryFile))
+            return;
+
+        var package = new Cps.Package
+        {
+            Name = projectConfig.name,
+            Version = projectConfig.version,
+            CompatVersion = projectConfig.version,
+            VersionSchema = "simple",
+            CpsVersion = "0.13.0",
+            Prefix = NormalizePath(outputDirectory),
+            DefaultComponents = new List<string> { projectConfig.name },
+            Components = new Dictionary<string, Cps.Component>
+            {
+                [projectConfig.name] = new Cps.Component
+                {
+                    Type = "archive",
+                    Includes = Cps.LanguageStringList.FromValues(new List<string>
+                    {
+                        NormalizePath(Path.GetRelativePath(outputDirectory, Project.Paths.Include))
+                    }),
+                    LinkLanguages = new List<string> { "c++" },
+                    LinkLocation = Path.GetFileName(binaryFile)
+                }
+            }
+        };
+
+        await File.WriteAllTextAsync(Project.GetCpsFile(config), Cps.Serialize(package));
+        Print.Err($"Exported CPS: {Project.GetCpsFile(config)}", ConsoleColor.Green);
     }
 
     private static async Task<int> GenerateSolution()
@@ -484,6 +526,7 @@ public static class VisualStudio
                 cl_compile.AddMetadata("LanguageStandard", "stdcpplatest", false);
                 cl_compile.AddMetadata("LanguageStandard_C", "stdclatest", false);
                 cl_compile.AddMetadata("BuildStlModules", "true", false);
+                cl_compile.AddMetadata("AdditionalIncludeDirectories", @"$(ProjectDir)..\include;$(ProjectDir)..\src;%(AdditionalIncludeDirectories)", false);
 
                 // PreprocessorDefinitions
                 string preprocessor = isLibrary
@@ -540,9 +583,12 @@ public static class VisualStudio
         vcpkg.AddProperty("VcpkgUseMD", "true");
 
         // ----- 15. Add sources from "src" folder -----
-        var sourceFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.cpp") : Array.Empty<string>();
-        var moduleFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.ixx") : Array.Empty<string>();
-        var headerFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.h") : Array.Empty<string>();
+        var sourceFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.cpp", SearchOption.AllDirectories) : Array.Empty<string>();
+        var moduleFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.ixx", SearchOption.AllDirectories) : Array.Empty<string>();
+        var privateHeaderFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.h", SearchOption.AllDirectories) : Array.Empty<string>();
+        var publicHeaderFiles = Directory.Exists(Project.Paths.Include) ? Directory.GetFiles(Project.Paths.Include, "*.h", SearchOption.AllDirectories) : Array.Empty<string>();
+        var publicHeaderFilesHpp = Directory.Exists(Project.Paths.Include) ? Directory.GetFiles(Project.Paths.Include, "*.hpp", SearchOption.AllDirectories) : Array.Empty<string>();
+        var headerFiles = privateHeaderFiles.Concat(publicHeaderFiles).Concat(publicHeaderFilesHpp);
 
         var sources = project.AddItemGroup();
 
@@ -602,9 +648,16 @@ public static class VisualStudio
     {
         var extensions = new[] { ".c", ".cpp", ".cxx", ".h", ".hpp", ".hxx", ".ixx" };
 
-        var files = Directory.GetFiles(Project.Paths.Src, "*.*", SearchOption.AllDirectories)
-                             .Where(f => extensions.Contains(Path.GetExtension(f)))
-                             .ToArray();
+        var files = new[]
+            {
+                Project.Paths.Src,
+                Project.Paths.Include
+            }
+            .Where(Directory.Exists)
+            .SelectMany(path => Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
+            .Where(f => extensions.Contains(Path.GetExtension(f)))
+            .Distinct()
+            .ToArray();
 
         if (files.Length == 0)
             return;

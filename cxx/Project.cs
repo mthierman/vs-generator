@@ -74,16 +74,39 @@ public static class Project
     public static string GetConfigurationType(Config config) =>
         IsLibrary(config) ? "StaticLibrary" : "Application";
 
+    public static string GetOutputBaseName() =>
+        Path.GetFileNameWithoutExtension(Paths.ProjectFile);
+
+    public static string GetPublicIncludeStem(Config config) => config.name;
+
+    public static string GetPublicIncludeDirectory(Config config) =>
+        Path.Combine(Paths.Include, GetPublicIncludeStem(config));
+
+    public static string GetPublicHeaderFile(Config config) =>
+        Path.Combine(GetPublicIncludeDirectory(config), $"{GetPublicIncludeStem(config)}.hpp");
+
+    public static string GetPublicHeaderInclude(Config config) =>
+        $"{GetPublicIncludeStem(config)}/{GetPublicIncludeStem(config)}.hpp";
+
+    public static string GetOutputDirectory(BuildConfiguration config) =>
+        config == BuildConfiguration.Debug ? Paths.Debug : Paths.Release;
+
+    public static string GetBinaryFile(BuildConfiguration config) =>
+        Path.Combine(GetOutputDirectory(config), $"{GetOutputBaseName()}.{(IsLibrary(Current) ? "lib" : "exe")}");
+
+    public static string GetCpsFile(BuildConfiguration config) =>
+        Path.Combine(GetOutputDirectory(config), $"{GetOutputBaseName()}.cps");
+
     public static async Task<int> New(string projectType = ProjectTypes.Exe)
     {
         var manifestFile = Path.Combine(Environment.CurrentDirectory, Manifest.Filename);
         var vcpkgManifestFile = Path.Combine(Environment.CurrentDirectory, "vcpkg.json");
         var vcpkgConfigurationFile = Path.Combine(Environment.CurrentDirectory, "vcpkg-configuration.json");
         var srcDirectory = Path.Combine(Environment.CurrentDirectory, "src");
+        var includeDirectory = Path.Combine(Environment.CurrentDirectory, "include");
 
         var manifestExists = File.Exists(manifestFile);
         var vcpkgExists = File.Exists(vcpkgManifestFile) || File.Exists(vcpkgConfigurationFile);
-        var srcExists = Directory.Exists(srcDirectory);
         var created = new List<string>();
         var skipped = new List<string>();
         var requestedProjectType = NormalizeType(projectType);
@@ -133,20 +156,57 @@ public static class Project
             skipped.Add("vcpkg.json/vcpkg-configuration.json");
         }
 
-        if (!srcExists)
+        if (IsLibrary(effectiveProjectType))
         {
-            var sourceFile = IsLibrary(effectiveProjectType) ? "lib.cpp" : "app.cpp";
-            var appFile = Path.Combine(Directory.CreateDirectory(srcDirectory).FullName, sourceFile);
+            var publicHeaderFile = Path.Combine(includeDirectory, GetPublicHeaderInclude(config).Replace('/', Path.DirectorySeparatorChar));
+            var publicHeaderPath = Path.GetRelativePath(Environment.CurrentDirectory, publicHeaderFile).Replace('\\', '/');
 
-            await File.WriteAllTextAsync(
-                appFile,
-                IsLibrary(effectiveProjectType)
-                    ? @"
-auto library_entry_point() -> int {
-    return 0;
-}
+            if (!File.Exists(publicHeaderFile))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(publicHeaderFile)!);
+                await File.WriteAllTextAsync(
+                    publicHeaderFile,
+                    @"
+#pragma once
+
+auto library_entry_point() -> int;
 ".Trim()
-                    : @"
+                );
+
+                created.Add(publicHeaderPath);
+            }
+            else
+            {
+                skipped.Add(publicHeaderPath);
+            }
+        }
+
+        var sourceFile = IsLibrary(effectiveProjectType) ? "lib.cpp" : "app.cpp";
+        var sourcePath = Path.Combine(srcDirectory, sourceFile);
+
+        if (!File.Exists(sourcePath))
+        {
+            var srcPath = Directory.CreateDirectory(srcDirectory).FullName;
+            var appFile = Path.Combine(srcPath, sourceFile);
+
+            if (IsLibrary(effectiveProjectType))
+            {
+                await File.WriteAllTextAsync(
+                    appFile,
+                    $@"
+#include <{GetPublicHeaderInclude(config)}>
+
+auto library_entry_point() -> int {{
+    return 0;
+}}
+".Trim()
+                );
+            }
+            else
+            {
+                await File.WriteAllTextAsync(
+                    appFile,
+                    @"
 #include <print>
 
 auto wmain() -> int {
@@ -154,13 +214,14 @@ auto wmain() -> int {
     return 0;
 }
 ".Trim()
-            );
+                );
+            }
 
             created.Add($"src/{sourceFile}");
         }
         else
         {
-            skipped.Add("src");
+            skipped.Add($"src/{sourceFile}");
         }
 
         Print.Err($"Initialized {App.MetaData.Name} {effectiveProjectType} project", ConsoleColor.Green);
@@ -205,6 +266,7 @@ auto wmain() -> int {
             Root: root,
             Manifest: Path.Combine(root, Project.Manifest.Filename),
             Src: Path.Combine(root, "src"),
+            Include: Path.Combine(root, "include"),
             Build: Path.Combine(root, "build"),
             Debug: Path.Combine(root, "build", "debug"),
             Release: Path.Combine(root, "build", "release"),
@@ -217,6 +279,7 @@ auto wmain() -> int {
         string Root,
         string Manifest,
         string Src,
+        string Include,
         string Build,
         string Debug,
         string Release,

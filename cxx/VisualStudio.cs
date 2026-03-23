@@ -10,7 +10,6 @@ public static class VisualStudio
 {
     private const string CpsPrefix = "@prefix@";
     private const string CpsPathPlaceholder = CpsPrefix;
-    private const string CpsIncludeDirectory = $"{CpsPrefix}/include";
     private const string CppLanguageStandard = "stdcpplatest";
     private const string CppCompileFeature = "c++23";
 
@@ -403,6 +402,7 @@ public static class VisualStudio
     {
         var projectConfig = Project.Current;
         var binaryFile = Project.GetBinaryFile(config);
+        var configPrefix = $"{CpsPrefix}/{config.ToString().ToLowerInvariant()}";
 
         if (!File.Exists(binaryFile))
             return;
@@ -424,10 +424,10 @@ public static class VisualStudio
                     CompileFeatures = new List<string> { CppCompileFeature },
                     Includes = Cps.LanguageStringList.FromValues(new List<string>
                     {
-                        CpsIncludeDirectory
+                        $"{configPrefix}/include"
                     }),
                     LinkLanguages = new List<string> { "cpp" },
-                    Location = $"{CpsPrefix}/{Path.GetFileName(binaryFile)}"
+                    Location = $"{configPrefix}/{Path.GetFileName(binaryFile)}"
                 }
             }
         };

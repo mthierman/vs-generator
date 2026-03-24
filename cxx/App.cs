@@ -24,7 +24,7 @@ public static class App
     {
         public static RootCommand Root = new($"C++ build tool\nversion {MetaData.Version}");
         private static Argument<Project.BuildConfiguration> Config = new("Config") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
-        
+
         private static Argument<string[]> VSWhereArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> MSBuildArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> CLArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
@@ -33,8 +33,8 @@ public static class App
         private static Argument<string[]> NugetArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> VcpkgArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string> CpsFile = new("File") { Description = "Path to the .cps file to parse" };
-            private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
-            {
+        private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
+        {
             ["new"] = new Command("new", "New project"),
             ["install"] = new Command("install", "Install project dependencies"),
             ["generate"] = new Command("generate", "Generate project build"),

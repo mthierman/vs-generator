@@ -106,7 +106,11 @@ public static class Project
     public static string GetCpsFile(BuildConfiguration config) =>
         Path.Combine(Paths.Build, GetCpsFileName(config));
 
-    public static async Task<int> New(string projectType = ProjectTypes.Exe)
+    public static bool HasExeSource() => File.Exists(Path.Combine(Paths.Src, "exe.cpp"));
+
+    public static bool HasLibSource() => File.Exists(Path.Combine(Paths.Src, "lib.cpp"));
+
+    public static async Task<int> New()
     {
         var manifestFile = Path.Combine(Environment.CurrentDirectory, Manifest.Filename);
         var vcpkgManifestFile = Path.Combine(Environment.CurrentDirectory, "vcpkg.json");
@@ -118,8 +122,6 @@ public static class Project
         var vcpkgExists = File.Exists(vcpkgManifestFile) || File.Exists(vcpkgConfigurationFile);
         var created = new List<string>();
         var skipped = new List<string>();
-        var requestedProjectType = NormalizeType(projectType);
-        var effectiveProjectType = requestedProjectType;
 
         var config = manifestExists
             ? Load(manifestFile)
@@ -127,10 +129,8 @@ public static class Project
             {
                 name = $"{App.MetaData.Name}-project",
                 version = "0.0.0",
-                type = requestedProjectType
+                type = ProjectTypes.Exe
             };
-
-        effectiveProjectType = NormalizeType(config.type);
 
         if (!manifestExists)
         {
@@ -140,9 +140,6 @@ public static class Project
         else
         {
             skipped.Add(Manifest.Filename);
-
-            if (!string.Equals(requestedProjectType, effectiveProjectType, StringComparison.Ordinal))
-                Print.Err($"Using existing project type '{effectiveProjectType}' from {Manifest.Filename}.", ConsoleColor.DarkYellow);
         }
 
         if (!vcpkgExists)
@@ -150,9 +147,7 @@ public static class Project
             var vcpkgProcessInfo = Exe.Vcpkg;
             vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_TRIPLET"] = "x64-windows-static-md";
             vcpkgProcessInfo.EnvironmentVariables["VCPKG_DEFAULT_HOST_TRIPLET"] = "x64-windows-static-md";
-            var vcpkgArgs = IsLibrary(effectiveProjectType)
-                ? new[] { "new", "--name", config.name, "--version", config.version }
-                : new[] { "new", "--application" };
+            var vcpkgArgs = new[] { "new", "--application" };
             var vcpkgExitCode = await App.Run(vcpkgProcessInfo, vcpkgArgs);
 
             if (vcpkgExitCode != 0)
@@ -165,57 +160,60 @@ public static class Project
             skipped.Add("vcpkg.json/vcpkg-configuration.json");
         }
 
-        if (IsLibrary(effectiveProjectType))
-        {
-            var publicHeaderFile = Path.Combine(includeDirectory, GetPublicHeaderInclude(config).Replace('/', Path.DirectorySeparatorChar));
-            var publicHeaderPath = Path.GetRelativePath(Environment.CurrentDirectory, publicHeaderFile).Replace('\\', '/');
+        // Always create a public header for the library API
+        var publicHeaderFile = Path.Combine(includeDirectory, GetPublicHeaderInclude(config).Replace('/', Path.DirectorySeparatorChar));
+        var publicHeaderPath = Path.GetRelativePath(Environment.CurrentDirectory, publicHeaderFile).Replace('\\', '/');
 
-            if (!File.Exists(publicHeaderFile))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(publicHeaderFile)!);
-                await File.WriteAllTextAsync(
-                    publicHeaderFile,
-                    @"
+        if (!File.Exists(publicHeaderFile))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(publicHeaderFile)!);
+            await File.WriteAllTextAsync(
+                publicHeaderFile,
+                @"
 #pragma once
 
 auto library_entry_point() -> int;
 ".Trim()
-                );
+            );
 
-                created.Add(publicHeaderPath);
-            }
-            else
-            {
-                skipped.Add(publicHeaderPath);
-            }
+            created.Add(publicHeaderPath);
+        }
+        else
+        {
+            skipped.Add(publicHeaderPath);
         }
 
-        var sourceFile = IsLibrary(effectiveProjectType) ? "lib.cpp" : "app.cpp";
-        var sourcePath = Path.Combine(srcDirectory, sourceFile);
+        // Create both library and executable source files if missing. Presence of these files determines
+        // whether the project contains library and/or executable code.
+        var srcPath = Directory.CreateDirectory(srcDirectory).FullName;
 
-        if (!File.Exists(sourcePath))
+        var libFile = Path.Combine(srcPath, "lib.cpp");
+        if (!File.Exists(libFile))
         {
-            var srcPath = Directory.CreateDirectory(srcDirectory).FullName;
-            var appFile = Path.Combine(srcPath, sourceFile);
-
-            if (IsLibrary(effectiveProjectType))
-            {
-                await File.WriteAllTextAsync(
-                    appFile,
-                    $@"
+            await File.WriteAllTextAsync(
+                libFile,
+                $@"
 #include <{GetPublicHeaderInclude(config)}>
 
 auto library_entry_point() -> int {{
     return 0;
 }}
 ".Trim()
-                );
-            }
-            else
-            {
-                await File.WriteAllTextAsync(
-                    appFile,
-                    @"
+            );
+
+            created.Add("src/lib.cpp");
+        }
+        else
+        {
+            skipped.Add("src/lib.cpp");
+        }
+
+        var exeFile = Path.Combine(srcPath, "exe.cpp");
+        if (!File.Exists(exeFile))
+        {
+            await File.WriteAllTextAsync(
+                exeFile,
+                @"
 #include <print>
 
 auto wmain() -> int
@@ -225,17 +223,16 @@ auto wmain() -> int
     return 0;
 }
 ".Trim()
-                );
-            }
+            );
 
-            created.Add($"src/{sourceFile}");
+            created.Add("src/exe.cpp");
         }
         else
         {
-            skipped.Add($"src/{sourceFile}");
+            skipped.Add("src/exe.cpp");
         }
 
-        Print.Err($"Initialized {App.MetaData.Name} {effectiveProjectType} project", ConsoleColor.Green);
+        Print.Err($"Initialized {App.MetaData.Name} project", ConsoleColor.Green);
 
         if (!manifestExists)
         {

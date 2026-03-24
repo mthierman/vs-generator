@@ -274,6 +274,11 @@ public static class VisualStudio
                 File.Delete(markedFile);
         }
 
+        // Also delete the alternate lib project if present
+        var altLib = Path.Combine(Project.Paths.Build, $"{Project.Current.name}.lib.vcxproj");
+        if (File.Exists(altLib))
+            File.Delete(altLib);
+
         return 0;
     }
 
@@ -439,9 +444,25 @@ public static class VisualStudio
         solutionModel.AddPlatform("x64");
         solutionModel.AddPlatform("x86");
 
-        var solutionProject = solutionModel.AddProject(Path.GetFileName(Project.Paths.ProjectFile));
+        var hasLib = Project.HasLibSource();
+        var hasExe = Project.HasExeSource();
 
-        solutionProject.Id = Guid.NewGuid();
+        if (hasLib && hasExe)
+        {
+            var libProjName = Path.GetFileNameWithoutExtension(Project.Paths.ProjectFile) + ".lib.vcxproj";
+            var exeProjName = Path.GetFileName(Project.Paths.ProjectFile);
+
+            var libSolutionProject = solutionModel.AddProject(libProjName);
+            libSolutionProject.Id = Guid.NewGuid();
+
+            var exeSolutionProject = solutionModel.AddProject(exeProjName);
+            exeSolutionProject.Id = Guid.NewGuid();
+        }
+        else
+        {
+            var solutionProject = solutionModel.AddProject(Path.GetFileName(Project.Paths.ProjectFile));
+            solutionProject.Id = Guid.NewGuid();
+        }
 
         await SolutionSerializers.SlnXml.SaveAsync(Project.Paths.SolutionFile, solutionModel, new CancellationToken());
 
@@ -453,187 +474,229 @@ public static class VisualStudio
         await GenerateSolution();
 
         var projectConfig = Project.Current;
-        var isLibrary = Project.IsLibrary(projectConfig);
-        var configurationType = Project.GetConfigurationType(projectConfig);
-        var project = ProjectRootElement.Create();
-        project.DefaultTargets = "Build";
-        project.ToolsVersion = null;
+        var hasLib = Project.HasLibSource();
+        var hasExe = Project.HasExeSource();
 
-        string[] configurations = { "Debug", "Release" };
-        string[] platforms = { "Win32", "x64" };
-
-        // ----- 1. Globals -----
-        var globals = project.AddPropertyGroup();
-        globals.Label = "Globals";
-        globals.AddProperty("VCProjectVersion", "18.0");
-        globals.AddProperty("Keyword", "Win32Proj");
-        globals.AddProperty("ProjectGuid", "{4985344b-071c-4114-a0bb-41d2b55773cd}");
-        globals.AddProperty("RootNamespace", projectConfig.name);
-        globals.AddProperty("WindowsTargetPlatformVersion", "10.0");
-        globals.AddProperty("UseMultiToolTask", "true");
-        globals.AddProperty("EnforceProcessCountAcrossBuilds", "true");
-
-        // ----- 2. Import Default.props -----
-        project.AddImport("$(VCTargetsPath)\\Microsoft.Cpp.Default.props");
-
-        // ----- 3. Configuration PropertyGroups -----
-        foreach (var config in configurations)
+        // Helper to create and save a project file
+        ProjectRootElement CreateProject(string configType, bool isLibProject, string projectGuid, string outSubdir)
         {
-            foreach (var platform in platforms)
-            {
-                var group = project.AddPropertyGroup();
-                group.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
-                group.Label = "Configuration";
+            var prj = ProjectRootElement.Create();
+            prj.DefaultTargets = "Build";
+            prj.ToolsVersion = null;
 
-                group.AddProperty("ConfigurationType", configurationType);
-                group.AddProperty("UseDebugLibraries", config == "Debug" ? "true" : "false");
-                group.AddProperty("PlatformToolset", "v145");
-                group.AddProperty("CharacterSet", "Unicode");
-                group.AddProperty("EnableUnitySupport", "false");
-                group.AddProperty("IntDir", $@"$(SolutionDir)\{config.ToLowerInvariant()}\obj\");
-                group.AddProperty("OutDir", $@"$(SolutionDir)\{config.ToLowerInvariant()}\");
-                group.AddProperty("TargetName", Project.GetOutputBaseName());
+            string[] configurations = { "Debug", "Release" };
+            string[] platforms = { "Win32", "x64" };
+
+            // ----- 1. Globals -----
+            var globals = prj.AddPropertyGroup();
+            globals.Label = "Globals";
+            globals.AddProperty("VCProjectVersion", "18.0");
+            globals.AddProperty("Keyword", "Win32Proj");
+            globals.AddProperty("ProjectGuid", projectGuid);
+            globals.AddProperty("RootNamespace", projectConfig.name);
+            globals.AddProperty("WindowsTargetPlatformVersion", "10.0");
+            globals.AddProperty("UseMultiToolTask", "true");
+            globals.AddProperty("EnforceProcessCountAcrossBuilds", "true");
+
+            // ----- 2. Import Default.props -----
+            prj.AddImport("$(VCTargetsPath)\\Microsoft.Cpp.Default.props");
+
+            // ----- 3. Configuration PropertyGroups -----
+            foreach (var cfg in configurations)
+            {
+                foreach (var platform in platforms)
+                {
+                    var group = prj.AddPropertyGroup();
+                    group.Condition = $"'$(Configuration)|$(Platform)'=='{cfg}|{platform}'";
+                    group.Label = "Configuration";
+
+                    group.AddProperty("ConfigurationType", configType);
+                    group.AddProperty("UseDebugLibraries", cfg == "Debug" ? "true" : "false");
+                    group.AddProperty("PlatformToolset", "v145");
+                    group.AddProperty("CharacterSet", "Unicode");
+                    group.AddProperty("EnableUnitySupport", "false");
+                    group.AddProperty("IntDir", $@"$(SolutionDir)\{cfg.ToLowerInvariant()}\\obj\\{outSubdir}");
+                    group.AddProperty("OutDir", $@"$(SolutionDir)\{cfg.ToLowerInvariant()}\\{outSubdir}\\");
+                    group.AddProperty("TargetName", Project.GetOutputBaseName());
+                }
             }
-        }
 
-        // ----- 4. ProjectConfigurations (must be AFTER config groups) -----
-        var projectConfigurations = project.AddItemGroup();
-        projectConfigurations.Label = "ProjectConfigurations";
+            // ----- 4. ProjectConfigurations -----
+            var projectConfigurations = prj.AddItemGroup();
+            projectConfigurations.Label = "ProjectConfigurations";
 
-        foreach (var config in configurations)
-        {
-            foreach (var platform in platforms)
+            foreach (var cfg in configurations)
             {
-                var item = projectConfigurations.AddItem("ProjectConfiguration", $"{config}|{platform}");
-                item.AddMetadata("Configuration", config);
-                item.AddMetadata("Platform", platform);
+                foreach (var platform in platforms)
+                {
+                    var item = projectConfigurations.AddItem("ProjectConfiguration", $"{cfg}|{platform}");
+                    item.AddMetadata("Configuration", cfg);
+                    item.AddMetadata("Platform", platform);
+                }
             }
-        }
 
-        // ----- 5. Import Microsoft.Cpp.props -----
-        project.AddImport(@"$(VCTargetsPath)\Microsoft.Cpp.props");
+            // ----- 5. Import Microsoft.Cpp.props -----
+            prj.AddImport(@"$(VCTargetsPath)\Microsoft.Cpp.props");
 
-        // ----- 6. ExtensionSettings ImportGroup -----
-        var extensionSettings = project.AddImportGroup();
-        extensionSettings.Label = "ExtensionSettings";
+            // ----- 6..13 - copy remaining common parts from original generate -----
+            var extensionSettings = prj.AddImportGroup();
+            extensionSettings.Label = "ExtensionSettings";
 
-        // ----- 7. Shared ImportGroup -----
-        var shared = project.AddImportGroup();
-        shared.Label = "Shared";
+            var shared = prj.AddImportGroup();
+            shared.Label = "Shared";
 
-        // ----- 8. Per-configuration PropertySheets -----
-        foreach (var config in configurations)
-        {
-            foreach (var platform in platforms)
+            foreach (var cfg in configurations)
             {
-                var propertySheets = project.AddImportGroup();
-                propertySheets.Label = "PropertySheets";
-                propertySheets.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
+                foreach (var platform in platforms)
+                {
+                    var propertySheets = prj.AddImportGroup();
+                    propertySheets.Label = "PropertySheets";
+                    propertySheets.Condition = $"'$(Configuration)|$(Platform)'=='{cfg}|{platform}'";
 
-                var import = propertySheets.AddImport(@"$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props");
-                import.Condition = $"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')";
-                import.Label = "LocalAppDataPlatform";
+                    var import = propertySheets.AddImport(@"$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props");
+                    import.Condition = $"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')";
+                    import.Label = "LocalAppDataPlatform";
+                }
             }
-        }
 
-        // ----- 9. UserMacros -----
-        var user_macros = project.AddPropertyGroup();
-        user_macros.Label = "UserMacros";
+            var user_macros = prj.AddPropertyGroup();
+            user_macros.Label = "UserMacros";
 
-        // ----- 10. ItemDefinitionGroups -----
-        foreach (var config in configurations)
-        {
-            foreach (var platform in platforms)
+            foreach (var cfg in configurations)
             {
-                var projectSettings = project.AddItemDefinitionGroup();
-                projectSettings.Condition = $"'$(Configuration)|$(Platform)'=='{config}|{platform}'";
+                foreach (var platform in platforms)
+                {
+                    var projectSettings = prj.AddItemDefinitionGroup();
+                    projectSettings.Condition = $"'$(Configuration)|$(Platform)'=='{cfg}|{platform}'";
 
-                // ----- ClCompile -----
-                var cl_compile = projectSettings.AddItemDefinition("ClCompile");
+                    var cl_compile = projectSettings.AddItemDefinition("ClCompile");
 
-                cl_compile.AddMetadata("WarningLevel", "Level4", false);
-                cl_compile.AddMetadata("TreatWarningAsError", "true", false);
-                cl_compile.AddMetadata("SDLCheck", "true", false);
-                cl_compile.AddMetadata("ConformanceMode", "true", false);
-                cl_compile.AddMetadata("LanguageStandard", CppLanguageStandard, false);
-                cl_compile.AddMetadata("LanguageStandard_C", "stdclatest", false);
-                cl_compile.AddMetadata("BuildStlModules", "true", false);
-                cl_compile.AddMetadata("AdditionalIncludeDirectories", @"$(ProjectDir)..\include;$(ProjectDir)..\src;%(AdditionalIncludeDirectories)", false);
+                    cl_compile.AddMetadata("WarningLevel", "Level4", false);
+                    cl_compile.AddMetadata("TreatWarningAsError", "true", false);
+                    cl_compile.AddMetadata("SDLCheck", "true", false);
+                    cl_compile.AddMetadata("ConformanceMode", "true", false);
+                    cl_compile.AddMetadata("LanguageStandard", CppLanguageStandard, false);
+                    cl_compile.AddMetadata("LanguageStandard_C", "stdclatest", false);
+                    cl_compile.AddMetadata("BuildStlModules", "true", false);
+                    cl_compile.AddMetadata("AdditionalIncludeDirectories", @"$(ProjectDir)..\include;$(ProjectDir)..\src;%(AdditionalIncludeDirectories)", false);
 
-                // PreprocessorDefinitions
-                string preprocessor = isLibrary
-                    ? config switch
+                    string preprocessor = isLibProject
+                        ? cfg switch
+                        {
+                            "Debug" when platform == "Win32" => "WIN32;_DEBUG;%(PreprocessorDefinitions)",
+                            "Release" when platform == "Win32" => "WIN32;NDEBUG;%(PreprocessorDefinitions)",
+                            "Debug" when platform == "x64" => "_DEBUG;%(PreprocessorDefinitions)",
+                            "Release" when platform == "x64" => "NDEBUG;%(PreprocessorDefinitions)",
+                            _ => "%(PreprocessorDefinitions)"
+                        }
+                        : cfg switch
+                        {
+                            "Debug" when platform == "Win32" => "WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)",
+                            "Release" when platform == "Win32" => "WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
+                            "Debug" when platform == "x64" => "_DEBUG;_CONSOLE;%(PreprocessorDefinitions)",
+                            "Release" when platform == "x64" => "NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
+                            _ => "%(PreprocessorDefinitions)"
+                        };
+                    cl_compile.AddMetadata("PreprocessorDefinitions", preprocessor, false);
+
+                    if (cfg == "Release")
                     {
-                        "Debug" when platform == "Win32" => "WIN32;_DEBUG;%(PreprocessorDefinitions)",
-                        "Release" when platform == "Win32" => "WIN32;NDEBUG;%(PreprocessorDefinitions)",
-                        "Debug" when platform == "x64" => "_DEBUG;%(PreprocessorDefinitions)",
-                        "Release" when platform == "x64" => "NDEBUG;%(PreprocessorDefinitions)",
-                        _ => "%(PreprocessorDefinitions)"
+                        cl_compile.AddMetadata("FunctionLevelLinking", "true", false);
+                        cl_compile.AddMetadata("IntrinsicFunctions", "true", false);
                     }
-                    : config switch
+
+                    if (!isLibProject)
                     {
-                        "Debug" when platform == "Win32" => "WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)",
-                        "Release" when platform == "Win32" => "WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
-                        "Debug" when platform == "x64" => "_DEBUG;_CONSOLE;%(PreprocessorDefinitions)",
-                        "Release" when platform == "x64" => "NDEBUG;_CONSOLE;%(PreprocessorDefinitions)",
-                        _ => "%(PreprocessorDefinitions)"
-                    };
-                cl_compile.AddMetadata("PreprocessorDefinitions", preprocessor, false);
-
-                // Release-specific flags
-                if (config == "Release")
-                {
-                    cl_compile.AddMetadata("FunctionLevelLinking", "true", false);
-                    cl_compile.AddMetadata("IntrinsicFunctions", "true", false);
-                }
-
-                if (!isLibrary)
-                {
-                    // ----- Link -----
-                    var link = projectSettings.AddItemDefinition("Link");
-                    link.AddMetadata("SubSystem", "Console", false);
-                    link.AddMetadata("GenerateDebugInformation", "true", false);
+                        var link = projectSettings.AddItemDefinition("Link");
+                        link.AddMetadata("SubSystem", "Console", false);
+                        link.AddMetadata("GenerateDebugInformation", "true", false);
+                    }
                 }
             }
+
+            prj.AddItemGroup();
+            prj.AddImport(@"$(VCTargetsPath)\Microsoft.Cpp.targets");
+            var extensionTargets = prj.AddImportGroup();
+            extensionTargets.Label = "ExtensionTargets";
+
+            var vcpkg = prj.AddPropertyGroup();
+            vcpkg.Label = "Vcpkg";
+            vcpkg.AddProperty("VcpkgEnableManifest", "true");
+            vcpkg.AddProperty("VcpkgUseStatic", "true");
+            vcpkg.AddProperty("VcpkgUseMD", "true");
+
+            return prj;
         }
 
-        // ----- 11. Empty ItemGroup -----
-        project.AddItemGroup();
-
-        // ----- 12. Import Microsoft.Cpp.targets -----
-        project.AddImport(@"$(VCTargetsPath)\Microsoft.Cpp.targets");
-
-        // ----- 13. ExtensionTargets ImportGroup -----
-        var extensionTargets = project.AddImportGroup();
-        extensionTargets.Label = "ExtensionTargets";
-
-        // ----- 14. Vcpkg PropertyGroup -----
-        var vcpkg = project.AddPropertyGroup();
-        vcpkg.Label = "Vcpkg";
-        vcpkg.AddProperty("VcpkgEnableManifest", "true");
-        vcpkg.AddProperty("VcpkgUseStatic", "true");
-        vcpkg.AddProperty("VcpkgUseMD", "true");
-
-        // ----- 15. Add sources from "src" folder -----
-        var sourceFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.cpp", SearchOption.AllDirectories) : Array.Empty<string>();
+        // Create one or two projects depending on presence of sources
+        var allSourceFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.cpp", SearchOption.AllDirectories) : Array.Empty<string>();
         var moduleFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.ixx", SearchOption.AllDirectories) : Array.Empty<string>();
         var privateHeaderFiles = Directory.Exists(Project.Paths.Src) ? Directory.GetFiles(Project.Paths.Src, "*.h", SearchOption.AllDirectories) : Array.Empty<string>();
         var publicHeaderFiles = Directory.Exists(Project.Paths.Include) ? Directory.GetFiles(Project.Paths.Include, "*.h", SearchOption.AllDirectories) : Array.Empty<string>();
         var publicHeaderFilesHpp = Directory.Exists(Project.Paths.Include) ? Directory.GetFiles(Project.Paths.Include, "*.hpp", SearchOption.AllDirectories) : Array.Empty<string>();
         var headerFiles = privateHeaderFiles.Concat(publicHeaderFiles).Concat(publicHeaderFilesHpp);
 
-        var sources = project.AddItemGroup();
+        // When both lib and exe sources exist, generate two projects: a StaticLibrary and an Application
 
-        foreach (var sourceFile in sourceFiles)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Project.Paths.Build, sourceFile).Replace('\\', '/'));
+        if (hasLib && hasExe)
+        {
+            var libGuid = "{" + Guid.NewGuid().ToString() + "}";
+            var exeGuid = "{" + Guid.NewGuid().ToString() + "}";
 
-        foreach (var moduleFile in moduleFiles)
-            sources.AddItem("ClCompile", Path.GetRelativePath(Project.Paths.Build, moduleFile).Replace('\\', '/'));
+            var libProject = CreateProject("StaticLibrary", true, libGuid, "lib");
+            var exeProject = CreateProject("Application", false, exeGuid, "exe");
 
-        foreach (var headerFile in headerFiles)
-            sources.AddItem("ClInclude", Path.GetRelativePath(Project.Paths.Build, headerFile).Replace('\\', '/'));
+            // lib: include all cpp except exe.cpp
+            var libItemGroup = libProject.AddItemGroup();
+            foreach (var src in allSourceFiles.Where(f => !string.Equals(Path.GetFileName(f), "exe.cpp", StringComparison.OrdinalIgnoreCase)))
+                libItemGroup.AddItem("ClCompile", Path.GetRelativePath(Project.Paths.Build, src).Replace('\\', '/'));
 
-        project.Save(Project.Paths.ProjectFile);
+            foreach (var mod in moduleFiles)
+                libItemGroup.AddItem("ClCompile", Path.GetRelativePath(Project.Paths.Build, mod).Replace('\\', '/'));
+
+            var libHeaders = libProject.AddItemGroup();
+            foreach (var hf in headerFiles)
+                libHeaders.AddItem("ClInclude", Path.GetRelativePath(Project.Paths.Build, hf).Replace('\\', '/'));
+
+            // exe: include only exe.cpp and add reference to lib project
+            var exeItemGroup = exeProject.AddItemGroup();
+            foreach (var src in allSourceFiles.Where(f => string.Equals(Path.GetFileName(f), "exe.cpp", StringComparison.OrdinalIgnoreCase)))
+                exeItemGroup.AddItem("ClCompile", Path.GetRelativePath(Project.Paths.Build, src).Replace('\\', '/'));
+
+            var exeHeaders = exeProject.AddItemGroup();
+            foreach (var hf in headerFiles)
+                exeHeaders.AddItem("ClInclude", Path.GetRelativePath(Project.Paths.Build, hf).Replace('\\', '/'));
+
+            var libProjPath = Path.Combine(Project.Paths.Build, $"{projectConfig.name}.lib.vcxproj");
+            var libRelPath = Path.GetRelativePath(Project.Paths.Build, libProjPath).Replace('\\', '/');
+
+            var refs = exeProject.AddItemGroup();
+            var reference = refs.AddItem("ProjectReference", libRelPath);
+            reference.AddMetadata("Project", libGuid.Trim('{', '}'), false);
+            reference.AddMetadata("Name", projectConfig.name, false);
+
+            // Save both projects
+            libProject.Save(libProjPath);
+            exeProject.Save(Project.Paths.ProjectFile);
+        }
+        else
+        {
+            var configType = hasLib ? "StaticLibrary" : "Application";
+            var prj = CreateProject(configType, hasLib, "{" + Guid.NewGuid().ToString() + "}", hasLib ? "lib" : "exe");
+
+            var itemGroup = prj.AddItemGroup();
+            foreach (var src in allSourceFiles)
+                itemGroup.AddItem("ClCompile", Path.GetRelativePath(Project.Paths.Build, src).Replace('\\', '/'));
+
+            foreach (var mod in moduleFiles)
+                itemGroup.AddItem("ClCompile", Path.GetRelativePath(Project.Paths.Build, mod).Replace('\\', '/'));
+
+            var headers = prj.AddItemGroup();
+            foreach (var hf in headerFiles)
+                headers.AddItem("ClInclude", Path.GetRelativePath(Project.Paths.Build, hf).Replace('\\', '/'));
+
+            prj.Save(Project.Paths.ProjectFile);
+        }
 
         Print.Err("Generation successful.", ConsoleColor.Green);
 

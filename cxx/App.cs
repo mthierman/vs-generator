@@ -24,8 +24,7 @@ public static class App
     {
         public static RootCommand Root = new($"C++ build tool\nversion {MetaData.Version}");
         private static Argument<Project.BuildConfiguration> Config = new("Config") { Arity = ArgumentArity.ZeroOrOne, Description = "Build Configuration (debug or release). Default: debug" };
-        private static Option<bool> NewExe = new("--exe") { Description = "Create an executable project" };
-        private static Option<bool> NewLib = new("--lib") { Description = "Create a static library project" };
+        
         private static Argument<string[]> VSWhereArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> MSBuildArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> CLArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
@@ -34,9 +33,9 @@ public static class App
         private static Argument<string[]> NugetArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string[]> VcpkgArgs = new Argument<string[]>("Args") { Arity = ArgumentArity.ZeroOrMore };
         private static Argument<string> CpsFile = new("File") { Description = "Path to the .cps file to parse" };
-        private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
-        {
-            ["new"] = new Command("new", "New project") { NewExe, NewLib },
+            private static Dictionary<string, Command> SubCommand = new Dictionary<string, Command>
+            {
+            ["new"] = new Command("new", "New project"),
             ["install"] = new Command("install", "Install project dependencies"),
             ["generate"] = new Command("generate", "Generate project build"),
             ["build"] = new Command("build", "Build project") { Config },
@@ -64,16 +63,7 @@ public static class App
 
             SubCommand["new"].SetAction(async parseResult =>
             {
-                var createExe = parseResult.GetValue(NewExe);
-                var createLib = parseResult.GetValue(NewLib);
-
-                if (createExe && createLib)
-                {
-                    Print.Err("Choose only one of --exe or --lib.", ConsoleColor.Red);
-                    return 1;
-                }
-
-                return await Project.New(createLib ? Project.ProjectTypes.Lib : Project.ProjectTypes.Exe);
+                return await Project.New();
             });
 
             SubCommand["install"].SetAction(async parseResult =>
@@ -98,9 +88,9 @@ public static class App
 
             SubCommand["run"].SetAction(async parseResult =>
             {
-                if (Project.IsLibrary(Project.Current))
+                if (!Project.HasExeSource())
                 {
-                    Print.Err("Run is only available for executable projects.", ConsoleColor.Red);
+                    Print.Err("Run is only available for projects with an executable (exe.cpp).", ConsoleColor.Red);
                     return 1;
                 }
 
@@ -114,9 +104,9 @@ public static class App
 
             SubCommand["publish"].SetAction(async parseResult =>
             {
-                if (Project.IsLibrary(Project.Current))
+                if (!Project.HasExeSource())
                 {
-                    Print.Err("Publish is only available for executable projects.", ConsoleColor.Red);
+                    Print.Err("Publish is only available for projects with an executable (exe.cpp).", ConsoleColor.Red);
                     return 1;
                 }
 
